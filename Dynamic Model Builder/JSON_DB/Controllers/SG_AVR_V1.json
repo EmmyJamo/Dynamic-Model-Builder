@@ -1,0 +1,26 @@
+{
+  "id": "SG_AVR_V1",
+  "description": "IEEE Type-1 AVR for synchronous generator",
+  "applies_to": [ "ElmSym" ],
+  "tunable": {
+    "K_A": {
+      "default": 200.0,
+      "bounds": [ 10.0, 500.0 ]
+    },
+    "T_A": {
+      "default": 0.02,
+      "bounds": [ 0.005, 0.2 ]
+    }
+  },
+  "blocks": [
+    {
+      "name": "AVR",
+      "type": "ElmAvr",
+      "params": {
+        "K": "${K_A}",
+        "T": "${T_A}"
+      }
+    }
+  ],
+  "connections": []
+}

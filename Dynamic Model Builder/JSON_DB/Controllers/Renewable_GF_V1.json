@@ -1,0 +1,43 @@
+{
+  "id": "Renewable_GF_V1",
+  "description": "Grid-following inverter controller with P–Q droop and PI current loop",
+
+  "applies_to": [ "ElmGenstat" ],
+
+  "tunable": {
+    "K_p": {
+      "default": 0.5,
+      "bounds": [ 0.1, 2.0 ]
+    },
+    "K_i": {
+      "default": 50.0,
+      "bounds": [ 10.0, 200.0 ]
+    },
+    "F_cut": {
+      "default": 100.0,
+      "bounds": [ 10.0, 500.0 ]
+    }
+  },
+
+  "blocks": [
+    {
+      "name": "CurrentPI",
+      "type": "ElmDsl",
+      "params": {
+        "kp": "${K_p}",
+        "ki": "${K_i}"
+      }
+    },
+    {
+      "name": "LPF",
+      "type": "ElmDsl",
+      "params": { "fc": "${F_cut}" }
+    }
+  ],
+
+  "connections": [
+    [ "ElmGenstat.ip", "CurrentPI.u" ], // inverter AC current → PI
+    [ "CurrentPI.y", "LPF.u" ], // PI output → LPF
+    [ "LPF.y", "ElmGenstat.vref" ] // filtered signal → voltage set-point
+  ]
+}

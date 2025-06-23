@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>6607be2d-4736-4d5d-b5a6-fa57ce890336</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Dynamic_Model_Builder.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,7 +21,43 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Dynamic_Model_Builder.py" />
+    <Compile Include="Data_Scoring\Attribute_Detection\Functions.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Data_Scoring\Frequency\F_P.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Data_Scoring\Voltage\V_P.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="main.py" />
+    <Compile Include="PowerFactory_Control\Get_Nested_Folder.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PowerFactory_Control\PowerFactory_SetUp.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PowerFactory_Interaction\module1.py" />
+    <Compile Include="PowerFactory_Interaction\Network_Snapshot.py" />
+    <Compile Include="Structs\Global_PF_Data.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Data_Scoring\" />
+    <Folder Include="Data_Scoring\Frequency\" />
+    <Folder Include="Data_Scoring\Attribute_Detection\" />
+    <Folder Include="Data_Scoring\Voltage\" />
+    <Folder Include="JSON_DB\" />
+    <Folder Include="JSON_DB\Controllers\" />
+    <Folder Include="JSON_DB\Network_Snapshots\" />
+    <Folder Include="PowerFactory_Interaction\" />
+    <Folder Include="PowerFactory_Control\" />
+    <Folder Include="Structs\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="JSON_DB\Controllers\Renewable_GF_V1.json" />
+    <Content Include="JSON_DB\Controllers\SG_AVR_V1.json" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

@@ -1,0 +1,40 @@
+{
+  "buses": [
+    "Cub_2",
+    "Cub_1"
+  ],
+  "Z": [
+    [
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.029999999329447746
+    ],
+    [
+      0.0,
+      0.029999999329447746
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "generators": [
+    {
+      "name": "Synchronous Machine",
+      "type": "synchronous",
+      "subtype": "Gas",
+      "bus": "Cub_1",
+      "MVA_rated": 1.0
+    },
+    {
+      "name": "Static Generator",
+      "type": "inverter",
+      "subtype": "Wind",
+      "bus": "Cub_2",
+      "MVA_rated": 1.0
+    }
+  ]
+}
