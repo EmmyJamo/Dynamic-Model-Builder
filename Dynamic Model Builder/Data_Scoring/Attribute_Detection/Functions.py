@@ -8,7 +8,9 @@ def detect_drop_time(poc_values, threshold=0.01, window=2):
         current_value = poc_values.iloc[i]
         next_values = poc_values.iloc[i+1:i+1+window]
         if next_values.min() < current_value * (1 - threshold):
+            print(f"Drop detected at index {i}, value: {current_value}")
             return i  # Return the index of the drop
+
     return None  # No significant drop detected 
 
 def detect_steady_state(poc_values, steady_state, tolerance=0.00125):

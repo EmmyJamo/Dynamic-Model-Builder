@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from Dynamic_Model_Builder.Data_Scoring.Attribute_Detection.Functions import detect_drop_time, detect_steady_state, custom_log_interpolation, detect_oscillations, calculate_log_values
+from Data_Scoring.Attribute_Detection.Functions import detect_drop_time, detect_steady_state, custom_log_interpolation, detect_oscillations, calculate_log_values
 import matplotlib
 
 def evaluate_frequency_control(individual, pf_data, return_gradients=False):

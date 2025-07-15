@@ -1,5 +1,6 @@
 import PowerFactory_Control.Get_Nested_Folder as get_nested_folder
 import sys
+import PowerFactory_Control.Get_Nested_Folder as gnf
 #import tkinter as tk
 #from tkinter import filedialog
 
@@ -33,7 +34,7 @@ else:
 def powerfactory_setup(pf_data):
     print('Setting up PowerFactory')
 
-    selected_dir = r'C:\Program Files\DIgSILENT\PowerFactory 2024 SP4\Python\3.9'  
+    selected_dir = r'C:\Program Files\DIgSILENT\PowerFactory 2024 SP6\Python\3.9'  
 
     # Append the selected directory to sys.path
     sys.path.append(selected_dir)
@@ -64,4 +65,7 @@ def powerfactory_setup(pf_data):
     if active_study_case is not None:
         active_study_case.Activate()
     print(pf_data.projects)
+
+    pf_data.grid_folder = gnf.get_nested_folder(pf_data, ['Network Model', 'Network Data', 'Grid.ElmNet']) 
+
 

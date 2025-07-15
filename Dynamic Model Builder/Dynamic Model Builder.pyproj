@@ -21,6 +21,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DataClasses\Run_RMS_Data.py" />
+    <Compile Include="Data_Processing\Score_First_Data_Set.py" />
     <Compile Include="Data_Scoring\Attribute_Detection\Functions.py">
       <SubType>Code</SubType>
     </Compile>
@@ -30,6 +32,21 @@
     <Compile Include="Data_Scoring\Voltage\V_P.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="PowerFactory_Control\Create_RMS_Sim.py" />
+    <Compile Include="PowerFactory_Control\Run_RMS_Sim.py" />
+    <Compile Include="PowerFactory_Interaction\Run_Initial_RMS.py" />
+    <Compile Include="PowerFactory_Interaction\Tune_Isolated_Gens.py" />
+    <Compile Include="PowerFactory_Interaction\Tune_Isolated_Gens_Wrapper.py" />
+    <Compile Include="waste\Create_Voltage_Study_Case.py" />
+    <Compile Include="PowerFactory_Interaction\Gen_Isolation.py" />
+    <Compile Include="PowerFactory_Interaction\Identify_Gens_of_Interest.py" />
+    <Compile Include="PowerFactory_Interaction\Thevian_Equivalent.py" />
+    <Compile Include="waste\old_export.py" />
+    <Compile Include="waste\old_isolation.py" />
+    <Compile Include="waste\old_rms_control.py" />
+    <Compile Include="waste\Study_Case_Data.py" />
+    <Compile Include="waste\Gen_Isolation_old.py" />
+    <Compile Include="waste\create_controller_from_json.py" />
     <Compile Include="main.py" />
     <Compile Include="PowerFactory_Control\Get_Nested_Folder.py">
       <SubType>Code</SubType>
@@ -37,9 +54,10 @@
     <Compile Include="PowerFactory_Control\PowerFactory_SetUp.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="PowerFactory_Interaction\module1.py" />
-    <Compile Include="PowerFactory_Interaction\Network_Snapshot.py" />
-    <Compile Include="Structs\Global_PF_Data.py">
+    <Compile Include="waste\Network_Snapshot.py" />
+    <Compile Include="PowerFactory_Interaction\Generator_Gather.py" />
+    <Compile Include="waste\Identify_Gens_of_Interestold.py" />
+    <Compile Include="DataClasses\Global_PF_Data.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -51,9 +69,11 @@
     <Folder Include="JSON_DB\" />
     <Folder Include="JSON_DB\Controllers\" />
     <Folder Include="JSON_DB\Network_Snapshots\" />
+    <Folder Include="waste\" />
+    <Folder Include="Data_Processing\" />
     <Folder Include="PowerFactory_Interaction\" />
     <Folder Include="PowerFactory_Control\" />
-    <Folder Include="Structs\" />
+    <Folder Include="DataClasses\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="JSON_DB\Controllers\Renewable_GF_V1.json" />
