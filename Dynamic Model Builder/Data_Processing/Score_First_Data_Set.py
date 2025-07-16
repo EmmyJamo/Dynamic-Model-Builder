@@ -61,13 +61,13 @@ def update_bus_fitness(pf_data) -> None:
         bus = get_name(rec)
         try:
             fitness = EV.evaluate_voltage_control(bus)
-            rec["fitness_value"] = float(fitness)  # ensure plain JSON number
+            rec["original network fitness_value"] = float(fitness)  # ensure plain JSON number
             print(f"✓ {bus:20s}  →  score = {fitness:.5g}")
         except Exception as err:
             # keep going, but record the failure
             print(f"⚠️  {bus}: {err}")
             traceback.print_exc(limit=1)
-            rec["fitness_value"] = None
+            rec["original network fitness_value"] = None
 
     # ------------------------------------------------------------------
     # save back – keep other keys (generators, meta-timestamps, …) intact

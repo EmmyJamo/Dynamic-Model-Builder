@@ -21,8 +21,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="DataClasses\Run_RMS_Data.py" />
     <Compile Include="Data_Processing\Score_First_Data_Set.py" />
+    <Compile Include="Data_Processing\Seed_AVR.py" />
     <Compile Include="Data_Scoring\Attribute_Detection\Functions.py">
       <SubType>Code</SubType>
     </Compile>
@@ -32,10 +32,11 @@
     <Compile Include="Data_Scoring\Voltage\V_P.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Machine_Learning\Machine_Learning.py" />
     <Compile Include="PowerFactory_Control\Create_RMS_Sim.py" />
     <Compile Include="PowerFactory_Control\Run_RMS_Sim.py" />
     <Compile Include="PowerFactory_Interaction\Run_Initial_RMS.py" />
-    <Compile Include="PowerFactory_Interaction\Tune_Isolated_Gens.py" />
+    <Compile Include="waste\Tune_Isolated_Gens.py" />
     <Compile Include="PowerFactory_Interaction\Tune_Isolated_Gens_Wrapper.py" />
     <Compile Include="waste\Create_Voltage_Study_Case.py" />
     <Compile Include="PowerFactory_Interaction\Gen_Isolation.py" />
@@ -69,6 +70,7 @@
     <Folder Include="JSON_DB\" />
     <Folder Include="JSON_DB\Controllers\" />
     <Folder Include="JSON_DB\Network_Snapshots\" />
+    <Folder Include="Machine_Learning\" />
     <Folder Include="waste\" />
     <Folder Include="Data_Processing\" />
     <Folder Include="PowerFactory_Interaction\" />
@@ -78,6 +80,7 @@
   <ItemGroup>
     <Content Include="JSON_DB\Controllers\Renewable_GF_V1.json" />
     <Content Include="JSON_DB\Controllers\SG_AVR_V1.json" />
+    <Content Include="JSON_DB\Network_Snapshots\39 Bus New England System_gen_snapshot.json" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

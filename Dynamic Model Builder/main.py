@@ -7,6 +7,7 @@ import PowerFactory_Interaction.Gen_Isolation as GI
 import PowerFactory_Interaction.Run_Initial_RMS as Run_In_RMS
 import Data_Processing.Score_First_Data_Set as Score
 import PowerFactory_Interaction.Tune_Isolated_Gens_Wrapper as Tune
+import Data_Processing.Seed_AVR as avs
 
 
 # PF_Data struct instance
@@ -33,6 +34,9 @@ Score.update_bus_fitness(pf_data)
 
 # Identify Generators of Interest
 GenIden.run_generator_impact(pf_data)
+
+# Build AVR Seeds from Snapshot
+avs.build_seeds_from_snapshot(pf_data, Voltage_Set_Point_Drop)
 
 # Build Infinite Bus Islands 
 GI.build_infinite_bus_islands(pf_data)
