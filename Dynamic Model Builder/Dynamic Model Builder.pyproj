@@ -32,10 +32,14 @@
     <Compile Include="Data_Scoring\Voltage\V_P.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Machine_Learning\Machine_Learning.py" />
+    <Compile Include="Machine_Learning\ML_DualHybrid_AVR.py" />
+    <Compile Include="Machine_Learning\ML_DualHybrid_AVR_wave.py" />
+    <Compile Include="PowerFactory_Interaction\Add_Seed_AVR_Values.py" />
+    <Compile Include="waste\Machine_Learning_old.py" />
     <Compile Include="PowerFactory_Control\Create_RMS_Sim.py" />
     <Compile Include="PowerFactory_Control\Run_RMS_Sim.py" />
     <Compile Include="PowerFactory_Interaction\Run_Initial_RMS.py" />
+    <Compile Include="waste\Seed_AVR_old.py" />
     <Compile Include="waste\Tune_Isolated_Gens.py" />
     <Compile Include="PowerFactory_Interaction\Tune_Isolated_Gens_Wrapper.py" />
     <Compile Include="waste\Create_Voltage_Study_Case.py" />

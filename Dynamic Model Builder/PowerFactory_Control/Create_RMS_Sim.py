@@ -25,22 +25,22 @@ def Create_Simulation_Event(pf_data, Sim_Nam, Sim_Tim_Start, Vol__Drop_To, Sim_t
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def Create_Results_Variable(pf_data, Busbar):
+def Create_Results_Variable(pf_data, Object_Monitor):
     #ry:
         # Retrieve the calculation location from powerfactory
         pf_data.Calculations_Folder = GNF.get_nested_folder(pf_data, ['Study Cases', 'Power Flow', 'All calculations'])
         print(f"found folder: {pf_data.Calculations_Folder.loc_name}")  # Debug print
 
         # Create the results variable in the specified folder
-        Results_Object = pf_data.Calculations_Folder.CreateObject('IntMon', Busbar)
+        Results_Object = pf_data.Calculations_Folder.CreateObject('IntMon', Object_Monitor)
         print(f"Created results variable: {Results_Object.loc_name}")  # Debug print
 
         # Set attributes for the results variable
-        Busbar_Object = pf_data.grid_folder.GetContents(Busbar)[0]
-        print(f"Busbar object found: {Busbar_Object.loc_name}")  # Debug print
+        Object_Monitor_Object = pf_data.grid_folder.GetContents(Object_Monitor)[0]
+        print(f"Busbar object found: {Object_Monitor_Object.loc_name}")  # Debug print
 
         # Set attributes for the results variable
-        Results_Object.SetAttribute('e:obj_id', Busbar_Object)  
+        Results_Object.SetAttribute('e:obj_id', Object_Monitor_Object)  
         Results_Object.SetAttribute('e:vars', ['m:u'])  
         Results_Object.SetAttribute('e:vars', ['m:u1'])  # Set the time step for the results variable
         print(f"Results variable created successfully: {Results_Object.loc_name}")  # Debug print

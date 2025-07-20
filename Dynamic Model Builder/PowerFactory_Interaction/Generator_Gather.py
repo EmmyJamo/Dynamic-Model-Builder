@@ -148,11 +148,11 @@ def _harvest_sym_operating(sym):
     the machine element after a loadflow has been solved.
     """
     op = {
-        "P_MW"   : getattr_pf(sym, "m:P:bus1"),
-        "Q_MVar" : getattr_pf(sym, "m:Q:bus1"),
+        "P_MW"   : getattr_pf(sym, "m:pgini"),
+        "Q_MVar" : getattr_pf(sym, "m:qgini"),
         "Ifd_pu" : getattr_pf(sym, "m:ifd"),      # may be A or pu; depends
         "Efd_pu" : getattr_pf(sym, "m:efd"),      # some models expose this
-        "Vt_pu"  : getattr_pf(sym, "m:V:bus1", "m:u:bus1"),
+        "Vt_pu"  : getattr_pf(sym, "m:usetp"),
     }
     for k,v in op.items():
         try:

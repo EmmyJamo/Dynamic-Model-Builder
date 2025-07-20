@@ -1,7 +1,7 @@
 ﻿# pf_rms_toolkit_minimal.py  – depends only on pf_data
 # --------------------------------------------------------------------
 from __future__ import annotations
-import datetime
+from datetime import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
 import PowerFactory_Control.Get_Nested_Folder as GNF
@@ -61,6 +61,7 @@ class RMSRunner:
         comsim.tstart      = sim.start_time
         comsim.tstop       = sim.stop_time
         comsim.dtgrd       = sim.step_size
+        comsim.iopt_ini    = 0  
         comsim.iopt_warn   = 0 if sim.ignore_dsl_warnings else 1
         return comsim
 
@@ -103,7 +104,7 @@ class RMSRunner:
         # ---------- locate & activate study case -------------------------------
         sc_folder  = GNF.get_nested_folder(self.pf_data, ["Study Cases"])
         sc_object  = sc_folder.GetContents(study_case)[0]
-        sc_object.Activate()
+
 
         # ---------- optional monitors -----------------------------------------
         if monitors and monitors.channels:
@@ -143,6 +144,7 @@ def quick_rms_run(
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
+    #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     runner = RMSRunner(pf_data)
     runner.run(
@@ -150,7 +152,7 @@ def quick_rms_run(
         study_case = study_case,
         monitors   = MonitorSpec(monitor_dict or {}),
         export     = ExportOptions(
-            csv_path = out_path / bus_name          #  ← no “.csv” here
+            csv_path = out_path / bus_name #/ str(bus_name + '_' + timestamp)         #  ← no “.csv” here / old code
             # xlsx_path = out_path / bus_name       #  add if you want XLSX
         )
     )

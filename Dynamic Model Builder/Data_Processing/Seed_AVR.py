@@ -1,72 +1,28 @@
 ﻿"""
-avr_seed_from_snapshot.py
-
-Generate 1st-cut AVR seed parameters for all generators flagged
-`"selected_for_tuning": true` in the network snapshot JSON.
-
-• Reads snapshot JSON (project-based path).
-• For each selected generator:
-      bus_for_analysis = Grid_Bus if Has_Trf else bus
-      load <bus>.csv (header=0, skiprows=[1])
-      extract dip+recovery features
-      map to AVR seed (Ka, Ta, Tr, Ke, Te, Kf, Tf, Vrmax, Vrmin)
-      write seed dict → generator["AVR_Seed"]
-• Writes JSON back.
-
-No writes into PowerFactory — this produces seed data for later ML tuning.
+avr_seed_from_snapshot.py ‑‑ dual‑scenario version
+--------------------------------------------------
+Derives first‑cut AVR seed values **only from bus‑voltage traces** recorded
+in two RMS simulations:
+  • fast_dip   : 10 % drop, release after 0.2 s
+  • slow_hold  : 10 % drop, hold for 5 s, then rise
+No AVR internals required.
 """
 
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-import json
-import numpy as np
-import pandas as pd
-from typing import Dict, Any
+import json, numpy as np, pandas as pd
+from typing import Dict, Any, Tuple, Union
 
-# ---------------------------------------------------------------------------
-# Config paths (edit if directory changes)
-# ---------------------------------------------------------------------------
-RESULTS_DIR = Path(r"C:\Users\james\OneDrive\MSc Project\results")
+# ───────── paths ───────────────────────────────────────────────────────────
+RESULTS_DIRS = {
+    "fast_dip":  Path(r"C:\Users\james\OneDrive\MSc Project\results_2.2_rise"),
+    "slow_hold": Path(r"C:\Users\james\OneDrive\MSc Project\results_7_rise"),
+}
 SNAPSHOT_BASE = (
     r"C:\Users\james\source\repos\EmmyJamo\Dynamic-Model-Builder"
     r"\Dynamic Model Builder\JSON_DB\Network_Snapshots"
 )
-
-
-def _snapshot_path(pf_data) -> Path:
-    return Path(SNAPSHOT_BASE) / f"{pf_data.project_name}_gen_snapshot.json"
-
-
-# ---------------------------------------------------------------------------
-# Seed container
-# ---------------------------------------------------------------------------
-@dataclass
-class AVRSeed:
-    Ka: float
-    Ta: float
-    Tr: float
-    Ke: float
-    Te: float
-    Kf: float
-    Tf: float
-    Vrmax: float
-    Vrmin: float
-    note: str = "auto-seed v0"
-
-    def as_dict(self) -> Dict[str, float]:
-        return {
-            "Ka": self.Ka,
-            "Ta": self.Ta,
-            "Tr": self.Tr,
-            "Ke": self.Ke,
-            "Te": self.Te,
-            "Kf": self.Kf,
-            "Tf": self.Tf,
-            "Vrmax": self.Vrmax,
-            "Vrmin": self.Vrmin,
-            "note": self.note,
-        }
 
 
 # ---------------------------------------------------------------------------
@@ -86,224 +42,118 @@ def _save_snapshot(pf_data, snap: dict) -> None:
         json.dump(snap, fp, indent=2)
     print(f"💾 Snapshot updated: {p}")
 
+# ───────── helper to locate snapshot json ──────────────────────────────────
+def _snapshot_path(pf_data) -> Path:
+    return Path(SNAPSHOT_BASE) / f"{pf_data.project_name}_gen_snapshot.json"
 
-# ---------------------------------------------------------------------------
-# CSV read (your pattern: skip 2nd row)
-# ---------------------------------------------------------------------------
-def _load_response_csv(bus: str) -> pd.DataFrame:
-    csv_path = RESULTS_DIR / f"{bus}.csv"
-    if not csv_path.exists():
-        raise FileNotFoundError(csv_path)
-    print(f"📄 Loading CSV: {csv_path}")
-    return pd.read_csv(csv_path, header=0, skiprows=[1])
+# ───────── seed container ──────────────────────────────────────────────────
+@dataclass
+class AVRSeed:
+    Ka: float; Ta: float; Tr: float
+    Ke: float; Te: float; Kf: float; Tf: float
+    Vrmax: float; Vrmin: float
+    note: str = "auto‑seed v1 (dual‑scenario)"
+    def as_dict(self) -> Dict[str, Union[str, float]]:
+        d = self.__dict__.copy(); return d
 
+# ───────── generic CSV loader (per scenario) ───────────────────────────────
+def _load_csv(bus: str, scenario: str) -> pd.DataFrame:
+    base = RESULTS_DIRS[scenario]
+    # exporter path pattern: <folder>/<Bus XX>/<Bus XX>.csv
+    p = base / bus / f"{bus}.csv"
+    if not p.exists():                    # fallback flat pattern
+        p = base / f"{bus}.csv"
+    if not p.exists():
+        raise FileNotFoundError(p)
+    return pd.read_csv(p, header=0, skiprows=[1])
 
-def _select_columns(df: pd.DataFrame, bus: str) -> pd.DataFrame:
-    # time
-    tcol = None
-    for c in ("All calculations",
-              "All calculations (b:tnow in s)",
-              "t", "time", "Time"):
-        if c in df.columns:
-            tcol = c
-            break
-    if tcol is None:
-        raise RuntimeError("Time column not found.")
+# ───────── time & voltage column picker ────────────────────────────────────
+def _select_tv(df: pd.DataFrame, bus: str) -> pd.DataFrame:
+    tcol = next((c for c in df.columns
+                 if c.lower().startswith(("all cal","t","time"))), None)
+    if tcol is None: raise RuntimeError("time col not found")
+    vcol = bus if bus in df.columns else \
+           next((c for c in df.columns if "m:u1" in c), None)
+    if vcol is None: vcol = next(c for c in df.columns if c != tcol)
+    return (pd.DataFrame({"t":pd.to_numeric(df[tcol], errors="coerce"),
+                          "Vpu":pd.to_numeric(df[vcol], errors="coerce")})
+            .dropna().reset_index(drop=True))
 
-    # voltage
-    if bus in df.columns:
-        vcol = bus
+# ───────── feature extractors ──────────────────────────────────────────────
+def _feat_fast(resp: pd.DataFrame, dip=0.9) -> Dict[str,float]:
+    t,v = resp["t"].to_numpy(), resp["Vpu"].to_numpy()
+    Vpre = float(np.median(v[-max(1,len(v)//10):]))
+    i_min = int(np.argmin(v)); t_min, Vmin = float(t[i_min]), float(v[i_min])
+    idx_below = np.where(v<dip)[0]
+    t_rel = float(t[idx_below[-1]]) if len(idx_below) else t_min
+    target63 = dip + 0.63*(Vpre-dip)
+    idx63 = np.where(v>=target63)[0]
+    t63 = float(t[idx63[0]]) if len(idx63) else np.nan
+    seg = resp[(resp.t>=t_rel+0.01)&(resp.t<=t_rel+0.05)]
+    slope = np.polyfit(seg.t, seg.Vpu,1)[0] if len(seg)>=2 else np.nan
+    return dict(Vpre=Vpre,Vmin=Vmin,t_min=t_min,t_rel=t_rel,t63=t63,slope=slope)
+
+def _feat_hold(resp: pd.DataFrame, dip=0.9,
+               t_drop=2.0,t_rise=7.0) -> Dict[str,float]:
+    t,v=resp.t.to_numpy(),resp.Vpu.to_numpy()
+    Vpre=float(np.median(v[t < t_drop-0.05]))
+    win_end=(t>=t_rise-0.5)&(t<=t_rise-0.05)
+    Vend=float(np.median(v[win_end])) if win_end.any() else np.nan
+    noise=float(np.std(v[win_end])) if win_end.any() else 0.0
+    return dict(Vpre=Vpre,Vend=Vend,noise=noise,dip=dip)
+
+# ───────── fusion heuristic (fast+hold) ────────────────────────────────────
+def _seed_from_dual(f:dict,h:dict|None,avr:dict) -> AVRSeed:
+    # Tr, Ta, Ka from fast
+    Tr=max(0.001,min(max(f["t_rel"]-f["t_min"],0.02),0.1))
+    Ta=max(0.02,min(max(f["t63"]-f["t_rel"],0.2),1.5))
+    slope=f["slope"]; Ka = 200 if np.isnan(slope) else np.clip(slope*Ta/0.1,5,500)
+
+    # long‑hold scaling
+    if h and np.isfinite(h["Vend"]):
+        RF = (h["Vend"]-h["dip"])/(h["Vpre"]-h["dip"]+1e-6)
+        G = np.clip(1/max(RF,1e-3),0.5,5)
+        Ka = np.clip(0.6*Ka + 0.4*Ka*G,5,500)
+        Te = 0.5 if RF>0.9 else np.clip(0.5+2*(1-RF),0.1,1.5)
+        Kf = 0.08 if h["noise"]>0.002 else np.clip(0.02*Ka/100,0,0.1)
     else:
-        # fallback: find column with 'm:u1' marker
-        vcol = next((c for c in df.columns if "m:u1" in c), None)
-        if vcol is None:
-            # fallback to any non-time numeric column
-            vcol = next((c for c in df.columns if c != tcol), None)
-    if vcol is None:
-        raise RuntimeError("Voltage column not found.")
+        Te = 0.5; Kf = np.clip(0.02*Ka/100,0,0.1)
 
-    out = pd.DataFrame({
-        "t":   pd.to_numeric(df[tcol], errors="coerce"),
-        "Vpu": pd.to_numeric(df[vcol], errors="coerce"),
-    }).dropna()
-    return out.reset_index(drop=True)
+    # remaining params from PF or defaults
+    Vrmax = avr.get("Vrmax",5.0); Vrmin = avr.get("Vrmin",-5.0)
+    Ke = avr.get("Ke", 1/max(abs(Vrmax),0.2)); Tf = 1.0
 
+    return AVRSeed(Ka,Ta,Tr,Ke,Te,Kf,Tf,Vrmax,Vrmin)
 
-# ---------------------------------------------------------------------------
-# Feature extraction (dip + recovery)
-# ---------------------------------------------------------------------------
-def _extract_features(resp: pd.DataFrame,
-                      dip_level: float = 0.9) -> Dict[str, Any]:
-    t = resp["t"].to_numpy()
-    v = resp["Vpu"].to_numpy()
-    n = len(v)
-    if n < 5:
-        raise ValueError("Response trace too short.")
+# ───────── public entry ‑ main loop ────────────────────────────────────────
+def build_seeds_from_snapshot(pf_data,dip_level=0.9,
+                              t_drop=2.0,t_rise_short=2.2,t_rise_long=7.0,
+                              require_csv=True) -> Dict[str,AVRSeed]:
+    snap=_load_snapshot(pf_data); seeds={}
+    for g in snap.get("generators",[]):
+        if not g.get("selected_for_tuning"): continue
+        bus=g.get("Grid_Bus") if g.get("Has_Trf") else g.get("bus")
+        if not bus: continue
+        print(f"\n🔧 {g['name']}  (bus {bus})")
 
-    # pre-disturbance ~ median last 10% of trace
-    tail = max(1, n // 10)
-    V_pre = float(np.median(v[-tail:]))
-
-    # min voltage
-    imin = int(np.argmin(v))
-    V_min = float(v[imin])
-    t_min = float(t[imin])
-
-    # last time below dip threshold
-    idx_below = np.where(v < dip_level)[0]
-    t_release = float(t[idx_below[-1]]) if len(idx_below) else t_min
-
-    # 63% recovery toward V_pre
-    target_63 = dip_level + 0.63 * (V_pre - dip_level)
-    idx_63 = np.where(v >= target_63)[0]
-    t_63 = float(t[idx_63[0]]) if len(idx_63) else float("nan")
-
-    # time to 0.95 & 0.98
-    def _first_above(th):
-        idx = np.where(v >= th)[0]
-        return float(t[idx[0]]) if len(idx) else float("nan")
-
-    t95 = _first_above(0.95)
-    t98 = _first_above(0.98)
-
-    # early slope (10–50 ms after release)
-    w0 = t_release + 0.01
-    w1 = t_release + 0.05
-    seg = resp[(resp["t"] >= w0) & (resp["t"] <= w1)]
-    slope = np.nan
-    if len(seg) >= 2:
-        slope = np.polyfit(seg["t"], seg["Vpu"], 1)[0]
-
-    return {
-        "V_pre": V_pre,
-        "V_min": V_min,
-        "t_min": t_min,
-        "t_release": t_release,
-        "t_63pct": t_63,
-        "t_recov95": t95,
-        "t_recov98": t98,
-        "slope_early": slope,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Map features → seed values (heuristic)
-# ---------------------------------------------------------------------------
-def _seed_from_features(feat: Dict[str, Any]) -> AVRSeed:
-    # Measurement delay ~ drop-to-release (bounded)
-    Tr = feat["t_release"] - feat["t_min"]
-    if not np.isfinite(Tr) or Tr <= 0:
-        Tr = 0.02
-    Tr = max(0.001, min(Tr, 0.1))
-
-    # Controller time constant ~ recovery 63% window
-    Ta = feat["t_63pct"] - feat["t_release"]
-    if not np.isfinite(Ta) or Ta <= 0:
-        Ta = 0.2
-    Ta = max(0.02, min(Ta, 1.5))
-
-    # Loop gain ~ early slope normalised (crude)
-    slope = feat.get("slope_early", np.nan)
-    if not np.isfinite(slope):
-        Ka = 200.0
-    else:
-        Ka = slope * Ta / 0.1
-        Ka = max(5.0, min(Ka, 500.0))
-
-    # Generic placeholder values (refine later)
-    Ke = 1.0
-    Te = 0.5
-    Kf = 0.0
-    Tf = 1.0
-    Vrmax = 5.0
-    Vrmin = -5.0
-
-    return AVRSeed(Ka=Ka, Ta=Ta, Tr=Tr,
-                   Ke=Ke, Te=Te, Kf=Kf, Tf=Tf,
-                   Vrmax=Vrmax, Vrmin=Vrmin)
-
-
-# ---------------------------------------------------------------------------
-# Public: build seeds for ALL selected generators (JSON only)
-# ---------------------------------------------------------------------------
-def build_seeds_from_snapshot(
-        pf_data,
-        *,
-        dip_level: float = 0.9,
-        skip_non_sync: bool = True,
-        require_csv: bool = True,
-) -> Dict[str, AVRSeed]:
-    """
-    Generate AVR seeds for all snapshot generators flagged selected_for_tuning.
-
-    Parameters
-    ----------
-    pf_data : PowerFactory wrapper
-    dip_level : float
-        Threshold used to detect end of dip (default 0.9 pu).
-    skip_non_sync : bool
-        If True, ignore non-synchronous gens; else include (same heuristic).
-    require_csv : bool
-        If True, skip gen when its CSV is missing; else create dummy seed.
-
-    Returns
-    -------
-    Dict[str, AVRSeed]
-        Mapping gen name → AVRSeed.
-    """
-    snap = _load_snapshot(pf_data)
-    gens = snap.get("generators", [])
-    todo = [g for g in gens if g.get("selected_for_tuning")]
-    if not todo:
-        print("No generators marked → nothing to seed.")
-        return {}
-
-    seeds: Dict[str, AVRSeed] = {}
-
-    for meta in todo:
-        gname = meta["name"]
-        gtype = (meta.get("type") or "").lower()
-        if skip_non_sync and gtype != "synchronous":
-            print(f"⏭  Skip non-sync gen {gname}.")
-            continue
-
-        bus = meta.get("Grid_Bus") if meta.get("Has_Trf") else meta.get("bus")
-        if not bus:
-            print(f"⚠️  {gname}: no bus info → skip.")
-            continue
-
-        print(f"\n🔧 Seeding «{gname}»   (bus='{bus}')")
-
-        # load CSV
         try:
-            df_raw = _load_response_csv(bus)
-        except FileNotFoundError as e:
-            if require_csv:
-                print(f"⚠️  CSV missing ({e}) → skip {gname}.")
-                continue
-            else:
-                print(f"⚠️  CSV missing ({e}) → using dummy seed.")
-                seed = AVRSeed(Ka=100, Ta=0.1, Tr=0.02,
-                               Ke=1, Te=0.5, Kf=0, Tf=1,
-                               Vrmax=5, Vrmin=-5, note="dummy (no CSV)")
-                seeds[gname] = seed
-                meta["AVR_Seed"] = seed.as_dict()
-                continue
-
-        # map & feature-extract
-        try:
-            resp = _select_columns(df_raw, bus)
-            feat = _extract_features(resp, dip_level=dip_level)
+            df_fast=_select_tv(_load_csv(bus,"fast_dip"),bus)
+            f=_feat_fast(df_fast,dip_level)
         except Exception as e:
-            print(f"⚠️  {gname}: feature extraction failed – {e}")
-            continue
+            print(f"⚠ fast‑dip missing/failed → {e}")
+            if require_csv: continue
+            f=dict(t_rel=0,t_min=0,t63=0,slope=np.nan)
 
-        # seed
-        seed = _seed_from_features(feat)
-        seeds[gname] = seed
-        meta["AVR_Seed"] = seed.as_dict()
-        print(f"   → Ka={seed.Ka:.1f} Ta={seed.Ta:.3f} Tr={seed.Tr:.3f}")
+        h=None
+        try:
+            df_hold=_select_tv(_load_csv(bus,"slow_hold"),bus)
+            h=_feat_hold(df_hold,dip_level,t_drop,t_rise_long)
+        except Exception as e:
+            print(f"   (no slow‑hold) {e}")
 
-    # write back
-    _save_snapshot(pf_data, snap)
-    return seeds
+        seed=_seed_from_dual(f,h,g.get("AVR_Params",{}))
+        seeds[g["name"]]=seed; g["AVR_Seed"]=seed.as_dict()
+        print(f"   → Ka={seed.Ka:.1f}  Ta={seed.Ta:.3f}  Tr={seed.Tr:.3f} "
+              f"Te={seed.Te:.3f}  Kf={seed.Kf:.3f}")
+
+    _save_snapshot(pf_data,snap)

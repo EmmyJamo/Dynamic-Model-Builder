@@ -1,8 +1,13 @@
-﻿import PowerFactory_Control.Create_RMS_Sim as RMS_Sim
+﻿from ast import Raise
+import PowerFactory_Control.Create_RMS_Sim as RMS_Sim
 import PowerFactory_Control.Run_RMS_Sim as R_RMS_Sim
 from pathlib import Path
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional
 import json
+from typing import List, Tuple
+import traceback
+from pathlib import Path
+from typing import Iterable
 
 SNAP_BASE = (r"C:\Users\james\source\repos\EmmyJamo\Dynamic-Model-Builder"
              r"\Dynamic Model Builder\JSON_DB\Network_Snapshots")
@@ -73,7 +78,50 @@ def load_bus_thevenin_map(
 
     return z_by_bus
 
+BusInfo = Tuple[str, bool, Optional[str]]   # (bus, has_gen?, gen_name or None)
 
+def annotate_target_buses_with_gens(pf_data) -> List[BusInfo]:
+    """
+    1)  Uses your existing get_target_buses() to get the list of buses
+        that will receive voltage‑step simulations.
+    2)  For each of those buses, checks the generator table:
+        • If the bus appears as  g["Grid_Bus"]    (HV side of xfmr)  OR
+                                 g["bus"]         (direct LV side)
+          → marks has_gen=True and returns that generator's name.
+        • Otherwise has_gen=False and gen_name=None.
+    """
+    # --- A. get the target bus list you already generate --------------------
+    target_buses = get_target_buses(pf_data)         # <- returns List[str]
+
+    # --- B. read snapshot JSON once ----------------------------------------
+    snap_path = _snap_path(pf_data)
+    if not snap_path.exists():
+        raise FileNotFoundError(f"Snapshot not found: {snap_path}")
+    snap = json.loads(Path(snap_path).read_text(encoding="utf-8"))
+
+    gens = snap.get("generators", [])
+
+    # --- C. build quick lookup  bus -> generator name -----------------------
+    bus2gen: dict[str, str] = {}
+    for g in gens:
+        # direct‑connected bus
+        lv_bus = g.get("bus")
+        if lv_bus:
+            bus2gen.setdefault(lv_bus, g["name"])
+
+        # HV bus of xfmr‑coupled unit
+        hv_bus = g.get("Grid_Bus")
+        if hv_bus:
+            bus2gen.setdefault(hv_bus, g["name"])
+
+    # --- D. assemble annotated list ----------------------------------------
+    annotated: List[BusInfo] = []
+    for bus in target_buses:
+        gen_name = bus2gen.get(bus)        # None if no generator on that bus
+        has_gen  = gen_name is not None
+        annotated.append((bus, has_gen, gen_name))
+
+    return annotated
 # ───────────────────────────────────────────────────────────────
 # helper: return only “good” buses for voltage-source placement
 # ───────────────────────────────────────────────────────────────
@@ -95,6 +143,8 @@ def get_target_buses(pf_data) -> list[str]:
         - "bus"       : the LV bus where its cubicle is connected
         - "Has_Trf"   : boolean  (True ⇢ gen sits behind a transformer)
     """
+    BusGenTupleList  = List[Tuple[str, Union[str, None]]]
+
     snap_path = _snap_path(pf_data)
     if not snap_path.exists():
         raise FileNotFoundError(f"Snapshot not found: {snap_path}")
@@ -122,60 +172,145 @@ def get_target_buses(pf_data) -> list[str]:
     return target
 
 
-def build_simulation_and_run(pf_data, Voltage_Set_Point_Drop, Voltage_Drop_Time, Voltage_Rise_Time):
+def _debug(msg: str):
+    print(f"[DEBUG] {msg}")
 
+def _safe_pf_call(func, *args, **kwargs):
+    """Wrapper: call PowerFactory API safely and print traceback on error."""
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        print(f"[ERROR] {func.__name__} failed → {e}")
+        traceback.print_exc()     # full stack trace to console
+        return None               # allows script to continue
+
+# ---------------------------------------------------------------------------
+# main driver
+# ---------------------------------------------------------------------------
+def build_simulation_and_run(pf_data, SCENARIOS: Iterable[tuple]):
     """
-    Build a simulation event for a voltage drop at a specific bus.
+    For every target LV bus:
+        • add a Vac source and two parameter‑events (fast_dip & slow_hold)
+        • set result channels
+        • run RMS simulations
     """
 
-    # ----- 0. obtain the bus list -------------------------------------------
-    buses = get_target_buses(pf_data)
+    # ---------- 0. validate SCENARIOS --------------------------------------
+    scenarios_checked = []
+    for no, s in enumerate(SCENARIOS, start=1):
+        if not isinstance(s, (list, tuple)) or len(s) != 4:
+            raise ValueError(
+                f"SCENARIOS item #{no} must be a 4‑tuple "
+                "(tag, drop_lvl, t_drop, t_rise) – got {s!r}"
+            )
+        scenarios_checked.append(tuple(s))   # ensure tuple type
 
-    for bus in buses:
-        print(f"\n🔄  Processing bus «{bus}»")
+    _debug(f"{len(scenarios_checked)} scenario(s) validated")
 
-        R, X, V_kV, U0 = get_bus_thevenin(pf_data, bus)
+    # ---------- 1. obtain bus list (+ generator info) ----------------------
+    try:
+        list_of_bus_gen = annotate_target_buses_with_gens(pf_data)
+    except Exception as e:
+        raise RuntimeError("annotate_target_buses_with_gens() failed") from e
 
-        # (a) Add / configure the AC voltage source
-        RMS_Sim.Add_Voltage_Source(
+    _debug(f"{len(list_of_bus_gen)} buses to process")
+
+    # ---------- 2. main loop over buses ------------------------------------
+    for bus, has_gen, gen_name in list_of_bus_gen:
+        print(f"\n🔄  Processing bus «{bus}»"
+              f"   (generator: {gen_name if has_gen else 'none'})")
+
+        # 2‑A  thevenin lookup
+        try:
+            R, X, V_kV, U0 = get_bus_thevenin(pf_data, bus)
+        except KeyError as e:
+            print(f"[SKIP] {e}")
+            continue
+
+        # 2‑B  add / configure Vac source
+        _safe_pf_call(
+            RMS_Sim.Add_Voltage_Source,
             pf_data,
-            Busbar  = bus,
-            voltage = V_kV,        # ⚙️ use Unom in p.u.; change if needed
-            R       = R,        # ⚙️ or use Rth/Xth from JSON if wanted
-            X       = X, 
-            U0      = U0,
-            Isolated_System_TF = False # Isolated_System_TF
+            Busbar=bus,
+            voltage=V_kV,
+            R=R,
+            X=X,
+            U0=U0,
+            Isolated_System_TF=False
         )
 
-        # (b) Create the simulation event for voltage drop
-        RMS_Sim.Create_Simulation_Event(pf_data, 
-                                        'Voltage Drop' + bus, 
-                                        Voltage_Drop_Time, Voltage_Set_Point_Drop, 
-                                        bus + 'V_Source.ElmVac')  
+        # ---------- 3. inner loop over scenarios ---------------------------
+        for tag, drop_lvl, t_drop, t_rise in scenarios_checked:
+            print(f"\n=== Scenario «{tag}» on {bus} ===")
+
+            # names for parameter events
+            rise_name = {
+                'fast_dip': "Voltage Rise 0.2s",
+                'slow_hold': "Voltage Rise 7s"
+            }.get(tag)
+
+            if rise_name is None:
+                print(f"[WARN] Unknown scenario tag «{tag}» – skipping")
+                continue
+
+            drop_name = f"Voltage Drop {bus}"
+            rise_name_full = f"{rise_name} {bus}"
+
+            # (a) create / reuse drop
+            if tag == "fast_dip":   # create only once
+                _safe_pf_call(
+                    RMS_Sim.Create_Simulation_Event,
+                    pf_data, drop_name, t_drop, drop_lvl,
+                    f"{bus}V_Source.ElmVac"
+                )
+                            # (b) set result channels
+                _safe_pf_call(RMS_Sim.Create_Results_Variable, pf_data, bus)
+                if has_gen:
+                    _safe_pf_call(RMS_Sim.Create_Results_Variable, pf_data, gen_name)
 
 
-        # (b.1) Create the simulation event for voltage rise
-        RMS_Sim.Create_Simulation_Event(pf_data, 
-                                        'Voltage Rise' + bus, 
-                                        Voltage_Rise_Time, U0, 
-                                        bus + 'V_Source.ElmVac')  
+            # (a.1) create rise event
+            _safe_pf_call(
+                RMS_Sim.Create_Simulation_Event,
+                pf_data, rise_name_full, t_rise, U0,
+                f"{bus}V_Source.ElmVac"
+            )
 
-        # (c) Create the results variable for the bus
-        RMS_Sim.Create_Results_Variable(pf_data, bus)
+            # (c) run RMS
+            results_dir = (
+                r"C:\Users\james\OneDrive\MSc Project\results_2.2_rise"
+                if tag == "fast_dip" else
+                r"C:\Users\james\OneDrive\MSc Project\results_7_rise"
+            )
+            _safe_pf_call(
+                R_RMS_Sim.quick_rms_run,
+                pf_data, "Power Flow", bus, results_dir, None
+            )
+            # NEW ─ reset PF’s internal simulation state
+            _safe_pf_call(pf_data.app.ResetCalculation)
 
-        R_RMS_Sim.quick_rms_run(pf_data, 'Power Flow', bus, 
-                                r'C:\Users\james\OneDrive\MSc Project\results', None)
+            # (d) deactivate rise event
+            _safe_pf_call(
+                lambda s_obj: s_obj.SetAttribute("e:outserv", True),
+                pf_data.Simulation_Folder.GetContents(rise_name_full)[0]
+            )
+        
+        # ---------- 4. deactivate extras on this bus ------------------------
+        _safe_pf_call(
+            lambda vac: vac.SetAttribute("e:outserv", True),
+            pf_data.grid_folder.GetContents(f"{bus}V_Source.ElmVac")[0]
+        )
+        _safe_pf_call(
+            lambda s_obj: s_obj.SetAttribute("e:outserv", True),
+            pf_data.Simulation_Folder.GetContents(f"Voltage Drop {bus}")[0]
+        )
 
-        Simulation_Object = pf_data.Simulation_Folder.GetContents('Voltage Drop' + bus)[0]
+        _debug(f"Finished bus «{bus}»")
 
-        Simulation_Object.SetAttribute('e:outserv', True)  # Turning all of these off at first to be turned on when needed - wont have to cycle through and turn off each one, for each sim\
+    print("\n✔️  All requested simulations attempted. Check log for errors.")
 
-        Simulation_Object = pf_data.Simulation_Folder.GetContents('Voltage Rise' + bus)[0]
 
-        Simulation_Object.SetAttribute('e:outserv', True)  # Turning all of these off at first to be turned on when needed - wont have to cycle through and turn off each one, for each sim\
 
-        V_Source_Object = pf_data.grid_folder.GetContents(bus + 'V_Source.ElmVac')[0]
 
-        V_Source_Object.SetAttribute('e:outserv', True)  # Turning all of these off at first to be turned on when needed - wont have to cycle through and turn off each one, for each sim
 
 

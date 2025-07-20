@@ -16,8 +16,32 @@ pf_data = pf_data.PowerFactoryData()
 # Project name
 pf_data.project_name = '39 Bus New England System'
 
+
 # Power Factory Setup
 PF_Setup.powerfactory_setup(pf_data)
+
+
+'''
+# Build Infinite Bus Islands 
+GI.build_infinite_bus_islands(pf_data)
+'''
+# Wrapper for Tuniong Isolated Generators
+Tune.tune_selected_generators(pf_data)
+
+'''
+
+
+# Identify Generators of Interest
+GenIden.run_generator_impact(pf_data)
+
+avs.build_seeds_from_snapshot(
+            pf_data,
+            dip_level=0.9,
+            t_drop=2.0,
+            t_rise_short=2.2,
+            t_rise_long=7.0)
+
+
 
 # Gather Generators
 Gen.Gather_Gens(pf_data)
@@ -25,25 +49,29 @@ Gen.Gather_Gens(pf_data)
 # Build Thevenin Equivalent for Generators of Interest
 Thevian.add_bus_thevenin_to_snapshot(pf_data)
 
-# Builds and runs first set of voltage step simulations
-Voltage_Set_Point_Drop, Voltage_Drop_Time, Voltage_Rise_Time = 0.9, 2, 2.2
-Run_In_RMS.build_simulation_and_run(pf_data, Voltage_Set_Point_Drop, Voltage_Drop_Time, Voltage_Rise_Time) # issue here!!! the folders simulation and calculations are not being created!!
+SCENARIOS = [
+    # name      drop_lvl  drop_t  rise_t
+    ('fast_dip', 0.9,      2.0,    2.2),   # 0.2‑s hold 
+    ('slow_hold', 0.9,     2.0,    7.0),   # 5‑s hold    (2 → 7 s)
+]
 
+# Builds and runs first set of voltage step simulations
+Run_In_RMS.build_simulation_and_run(pf_data, SCENARIOS) # issue here!!! the folders simulation and calculations are not being created!!
 # Evaluate Voltage Simulation Results
 Score.update_bus_fitness(pf_data)
 
-# Identify Generators of Interest
-GenIden.run_generator_impact(pf_data)
 
-# Build AVR Seeds from Snapshot
-avs.build_seeds_from_snapshot(pf_data, Voltage_Set_Point_Drop)
 
-# Build Infinite Bus Islands 
-GI.build_infinite_bus_islands(pf_data)
+avs.build_seeds_from_snapshot(
+            pf_data,
+            dip_level=0.9,
+            t_drop=2.0,
+            t_rise_short=2.2,
+            t_rise_long=7.0)
 
-# Wrapper for Tuniong Isolated Generators
-Tune.tune_selected_generators(pf_data)
 
+
+'''
 
 
 
