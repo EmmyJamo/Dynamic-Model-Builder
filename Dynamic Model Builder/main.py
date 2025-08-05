@@ -9,6 +9,7 @@ import Data_Processing.Score_First_Data_Set as Score
 import PowerFactory_Interaction.Tune_Isolated_Gens_Wrapper as Tune
 import Data_Processing.Seed_AVR as avs
 
+# This code isnt great, I rewrite the same code in multiple files, but I have rushed this and I am running out of time to finish this before I start my exams.
 
 # PF_Data struct instance
 pf_data = pf_data.PowerFactoryData()
@@ -19,29 +20,6 @@ pf_data.project_name = '39 Bus New England System'
 
 # Power Factory Setup
 PF_Setup.powerfactory_setup(pf_data)
-
-
-'''
-# Build Infinite Bus Islands 
-GI.build_infinite_bus_islands(pf_data)
-'''
-# Wrapper for Tuniong Isolated Generators
-Tune.tune_selected_generators(pf_data)
-
-'''
-
-
-# Identify Generators of Interest
-GenIden.run_generator_impact(pf_data)
-
-avs.build_seeds_from_snapshot(
-            pf_data,
-            dip_level=0.9,
-            t_drop=2.0,
-            t_rise_short=2.2,
-            t_rise_long=7.0)
-
-
 
 # Gather Generators
 Gen.Gather_Gens(pf_data)
@@ -57,10 +35,12 @@ SCENARIOS = [
 
 # Builds and runs first set of voltage step simulations
 Run_In_RMS.build_simulation_and_run(pf_data, SCENARIOS) # issue here!!! the folders simulation and calculations are not being created!!
+
 # Evaluate Voltage Simulation Results
 Score.update_bus_fitness(pf_data)
 
-
+# Identify Generators of Interest
+GenIden.run_generator_impact(pf_data)
 
 avs.build_seeds_from_snapshot(
             pf_data,
@@ -69,9 +49,13 @@ avs.build_seeds_from_snapshot(
             t_rise_short=2.2,
             t_rise_long=7.0)
 
+# Build Infinite Bus Islands 
+GI.build_infinite_bus_islands(pf_data)
+
+# Wrapper for Tuniong Isolated Generators
+Tune.tune_selected_generators(pf_data)
 
 
-'''
 
 
 

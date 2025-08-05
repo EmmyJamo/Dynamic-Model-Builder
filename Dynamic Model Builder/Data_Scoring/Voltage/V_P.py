@@ -6,12 +6,12 @@ from Data_Scoring.Attribute_Detection.Functions import detect_drop_time, detect_
 import matplotlib
 
  
-def evaluate_voltage_control (busbar):
+def evaluate_voltage_control (busbar, csv_path_part):
     
 
     ############### sim_data Column Headers ###############
   
-    csv_path = Path(r"C:\Users\james\OneDrive\MSc Project\results") / f"{busbar}.csv"
+    csv_path = Path(csv_path_part) / f"{busbar}.csv"
     print(csv_path)
     sim_data = pd.read_csv(csv_path, header=0, skiprows=[1])
     print(f'alligned path to sim_data variable')

@@ -19,16 +19,16 @@ from Machine_Learning import ML_PSO_AVR as PSO
 # ---------------------------------------------------------------------------
 _MAX_ITER = 12               # wrapper iterations per generator
 
-_SCEN = {
+_SCEN = {                    # two RMS voltage‑disturbance scenarios
     "fast_dip": {
-        "rise_evt"    : "Voltage Rise 0.2s",
-        "results_dir" : str(Path(r"C:\Users\james\OneDrive\MSc Project\results_ml") / "fast_dip"),
-        "switch_thresh": 8e-3,
+        "rise_evt"     : "Voltage Rise 0.2s",
+        "results_dir"  : r"C:\Users\james\OneDrive\MSc Project\results_2.2_rise",
+        "switch_thresh": 8e-3,      # MAE  → promote to slow_hold when below
         "min_iters"    : 4,
     },
     "slow_hold": {
-        "rise_evt"    : "Voltage Rise 7s",
-        "results_dir" : str(Path(r"C:\Users\james\OneDrive\MSc Project\results_ml") / "slow_hold"),
+        "rise_evt"     : "Voltage Rise 7s",
+        "results_dir"  : r"C:\Users\james\OneDrive\MSc Project\results_7_rise",
     },
 }
 
@@ -42,6 +42,20 @@ _SNAP_BASE = (r"C:\Users\james\source\repos\EmmyJamo\Dynamic-Model-Builder"
 def _snap_path(pf_data) -> Path:
     return Path(_SNAP_BASE) / f"{pf_data.project_name}_gen_snapshot.json"
 
+# ---------------------------------------------------------------------------
+# quick CSV promotion so the scorer can work in a fixed directory
+# ---------------------------------------------------------------------------
+def _promote_latest_csv(bus: str, scenario: str) -> None:
+    src_dir = Path(_SCEN[scenario]["results_dir"]) / bus
+    if not src_dir.exists():
+        return
+    latest = max(src_dir.glob("*.csv"),
+                 key=lambda p: p.stat().st_mtime,
+                 default=None)
+    if latest:
+        dest = _ML_RESULTS_DIR / scenario
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(latest, dest / f"{bus}.csv")
 
 # ---------------------------------------------------------------------------
 # basic PowerFactory helpers
@@ -111,29 +125,37 @@ def _eval_candidate(pf_data,
                     bus:      str,
                     vec:      list[float],
                     scenario: str) -> float:
-
-    # 1) write the candidate to PF
+    """
+    • writes *vec* into the AVR,
+    • runs the RMS disturbance for the requested scenario,
+    • copies the latest CSV into the fixed ML results folder,
+    • calls the voltage‑fitness scorer with the correct folder path,
+    • returns the scalar fitness (lower = better).
+    """
+    # 1) push parameters into PF
     PSO.write_candidate(pf_data, gname, vec)
 
-    # 2) run RMS –  results go directly into  …/results_ml/<scenario>/
-    out_dir = _SCEN[scenario]["results_dir"]
+    # 2) run RMS using the scenario‑specific results directory
     R_RMS_Sim.quick_rms_run(
         pf_data,
         "Power Flow",
         bus,
-        out_dir,            # <<< writes straight to ML folder
+        _SCEN[scenario]["results_dir"],
         None
     )
 
-    # 3) sleep very briefly to let PF close the file
+    # 3) copy the freshly‑written CSV to a stable location for the scorer
+    _promote_latest_csv(bus, scenario)
+
+    # 4) give PF a moment to finish file I/O
     time.sleep(0.25)
 
-    # 4) score – the scorer reads the same directory
-    score = EV.evaluate_voltage_control(bus, Path(out_dir))
+    # 5) score using the folder the scorer expects
+    csv_root = _ML_RESULTS_DIR / scenario          # <‑‑ NEW
+    score = EV.evaluate_voltage_control(bus, csv_root)
 
     print(f"      ↩ fitness = {score:.6g}")
     return score
-
 
 
 # ---------------------------------------------------------------------------
@@ -190,11 +212,6 @@ def tune_selected_generators(pf_data,
             # -------- convergence? ---------------------------------------
             if best_score <= target_score:
                 print(f"   🎯 target achieved (score {best_score:.6g})")
-                _deactivate_variant(pf_data, gname)
-                break
-
-            if k == max_iter:
-                print(f"   ⏳ max iterations reached (score {best_score:.6g})")
                 _deactivate_variant(pf_data, gname)
                 break
 
