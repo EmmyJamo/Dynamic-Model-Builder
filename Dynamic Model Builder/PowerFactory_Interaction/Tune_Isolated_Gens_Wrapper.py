@@ -18,11 +18,12 @@ import PowerFactory_Interaction.Run_Initial_RMS     as Run_In_RMS
 
 # ---------- PSO engine -----------------------------------------------------
 from Machine_Learning import ML_PSO_AVR as PSO
+from Machine_Learning.ML_PSO_AVR import TUNED_TAGS  # to label best-vector CSV
 
 # ---------------------------------------------------------------------------
 # static configuration
 # ---------------------------------------------------------------------------
-_MAX_ITER = 12
+_MAX_ITER = 60  # allow more iterations; plateau logic will stop earlier
 
 _SCEN = {
     "fast_dip": {
@@ -38,6 +39,14 @@ _SCEN = {
 }
 
 _ML_RESULTS_DIR = Path(r"C:\Users\james\OneDrive\MSc Project\results_ml")
+
+# Convergence (plateau) detection on the score stream
+_STOP_CRIT = {
+    "min_iters": 10,      # never stop before this many iterations
+    "window":     6,      # use the last W scores against the previous W
+    "eps_abs":  2e-4,     # absolute improvement threshold
+    "eps_rel":  0.01,     # OR 1% relative improvement threshold
+}
 
 # ---------------------------------------------------------------------------
 # snapshot helpers
@@ -106,13 +115,23 @@ def _capture_avr_params(pf_data, meta):
     return out
 
 # ---------------------------------------------------------------------------
-# fitness history (per variation)
+# fitness history helpers (per variation): CSV + PNG updated each iteration
 # ---------------------------------------------------------------------------
-def _save_plot_for_variation(var_name: str, scores: list[float],
-                             out_root: Path = _ML_RESULTS_DIR / "plots") -> Path | None:
-    if not scores:
-        return None
-    out_dir = out_root / var_name.replace(" ", "_")
+def _var_plot_dir(var_name: str) -> Path:
+    return (_ML_RESULTS_DIR / "plots" / var_name.replace(" ", "_"))
+
+def _write_history_csv(var_name: str, scores: list[float]) -> Path:
+    d = _var_plot_dir(var_name); d.mkdir(parents=True, exist_ok=True)
+    p = d / "fitness_history.csv"
+    with p.open("w", encoding="utf-8") as fp:
+        fp.write("iteration,fitness\n")
+        for i, s in enumerate(scores, 1):
+            fp.write(f"{i},{float(s)}\n")
+    return p
+
+def _save_plot_for_variation(var_name: str, scores: list[float]) -> Path | None:
+    if not scores: return None
+    out_dir = _var_plot_dir(var_name)
     out_dir.mkdir(parents=True, exist_ok=True)
     x = list(range(1, len(scores)+1))
     fig, ax = plt.subplots(figsize=(6, 3.5))
@@ -125,8 +144,61 @@ def _save_plot_for_variation(var_name: str, scores: list[float],
     out_path = out_dir / "fitness.png"
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
-    print(f"   📈 saved plot → {out_path}")
     return out_path
+
+def _update_progress_artifacts(var_name: str, scores: list[float]) -> None:
+    csv_p  = _write_history_csv(var_name, scores)
+    png_p  = _save_plot_for_variation(var_name, scores)
+    print(f"   📊 progress: {len(scores)} pts → {csv_p}")
+    if png_p: print(f"   📈 plot updated → {png_p}")
+
+# ---- best-vector persistence ----------------------------------------------
+def _write_best_vector_csv(var_name: str, best_score: float, best_iter: int, vec: list[float]) -> Path:
+    d = _var_plot_dir(var_name); d.mkdir(parents=True, exist_ok=True)
+    p = d / "best_vector.csv"
+    with p.open("w", encoding="utf-8") as fp:
+        fp.write("best_iter,best_score," + ",".join(TUNED_TAGS) + "\n")
+        vals = ",".join(str(float(v)) for v in vec)
+        fp.write(f"{best_iter},{best_score},{vals}\n")
+    print(f"   📝 best-vector saved → {p}")
+    return p
+
+# ---------------------------------------------------------------------------
+# plateau detection on score stream
+# ---------------------------------------------------------------------------
+def _mean(vals: list[float]) -> float:
+    return sum(vals) / max(1, len(vals))
+
+def _has_plateau(scores: list[float]) -> bool:
+    """
+    True  -> stop: recent improvement is negligible
+    False -> keep going
+    """
+    w   = _STOP_CRIT["window"]
+    mi  = _STOP_CRIT["min_iters"]
+    ea  = _STOP_CRIT["eps_abs"]
+    er  = _STOP_CRIT["eps_rel"]
+
+    if len(scores) < max(mi, 2*w):
+        return False
+
+    recent = scores[-w:]
+    prev   = scores[-2*w:-w]
+    prev_m = _mean(prev)
+    rec_m  = _mean(recent)
+
+    improvement = prev_m - rec_m  # positive means better
+    threshold  = max(ea, er * abs(prev_m))
+
+    # also require the recent spread to be tiny (very flat)
+    rec_spread = (max(recent) - min(recent)) if recent else 0.0
+
+    plateau = (improvement <= threshold) and (rec_spread <= 2*ea)
+    if plateau:
+        print(f"   🛑 plateau detected: prev_mean={prev_m:.6g}, "
+              f"recent_mean={rec_m:.6g}, Δ={improvement:.3g} ≤ {threshold:.3g}, "
+              f"spread={rec_spread:.3g}")
+    return plateau
 
 # ---------------------------------------------------------------------------
 # evaluate ONE PSO candidate and return its fitness
@@ -157,7 +229,7 @@ def _eval_candidate(pf_data,
 # MAIN entry
 # ---------------------------------------------------------------------------
 def tune_selected_generators(pf_data,
-                             target_score: float = 8.5e-4,
+                             target_score: float = 0.0095,
                              max_iter: int   = _MAX_ITER,
                              dry_run:   bool = False):
 
@@ -185,9 +257,11 @@ def tune_selected_generators(pf_data,
             continue
         PSO.prepare_pso(pf_data, meta, n_particles=10)
 
-        scenario   = "fast_dip"
+        scenario    = "fast_dip"
         var_scores: list[float] = []
-        best_score = float("inf")
+        best_score  = float("inf")
+        best_vec: list[float] | None = None
+        best_iter   = 0
 
         for k in range(1, max_iter + 1):
             print(f"\n[{gname}/{var_name}] iteration {k}/{max_iter} • scenario = {scenario}")
@@ -197,31 +271,43 @@ def tune_selected_generators(pf_data,
             cand   = PSO.ask_one(gname)
             score  = _eval_candidate(pf_data, meta, bus, cand, scenario)
             PSO.tell_one(gname, score, cand)
-            best_score = min(best_score, score)
 
-            # record score for THIS VARIATION
+            # record score + artifacts
             var_scores.append(float(score))
+            _update_progress_artifacts(var_name, var_scores)
+
+            # track global best (score + vector + iteration)
+            if score < best_score:
+                best_score = float(score)
+                best_vec   = list(cand)
+                best_iter  = k
+                _write_best_vector_csv(var_name, best_score, best_iter, best_vec)
 
             # -------- convergence? ---------------------------------------
             if best_score <= target_score:
-                print(f"   🎯 target achieved (score {best_score:.6g})")
-                _deactivate_variant(pf_data, var_name)
+                print(f"   🎯 target achieved (best {best_score:.6g})")
                 break
 
-            if k == _MAX_ITER:
-                print(f"   ⏳ max iterations reached (score {best_score:.6g})")
-                _deactivate_variant(pf_data, var_name)
+            if _has_plateau(var_scores):
+                print(f"   ✅ steady-state fitness reached after {k} iters "
+                      f"(best {best_score:.6g} @ iter {best_iter}).")
                 break
 
-        # ---------- save best vector back to PF & snapshot ---------------
-        PSO.write_candidate(pf_data, meta, PSO.get_best(gname))
+        # ---------- write BEST vector back to PF & snapshot --------------
+        if best_vec is not None:
+            print(f"   ↩ writing best vector from iter {best_iter} (score {best_score:.6g})")
+            PSO.write_candidate(pf_data, meta, best_vec)
+        else:
+            # fall back to optimiser’s best if never improved
+            PSO.write_candidate(pf_data, meta, PSO.get_best(gname))
+
+        _deactivate_variant(pf_data, var_name)
+
+        # store in snapshot
         meta["AVR_Final"]   = _capture_avr_params(pf_data, meta)
         meta["final_score"] = best_score
-        meta["tuned_iter"]  = k
+        meta["tuned_iter"]  = best_iter
         meta["tuning_ts"]   = datetime.datetime.now().isoformat(timespec="seconds")
-
-        # ---------- save fitness plot FOR THIS VARIATION -----------------
-        _save_plot_for_variation(var_name, var_scores)
 
     snap_p.write_text(json.dumps(snap, indent=2))
     print("\n✅  Tuning finished – snapshot JSON updated")
