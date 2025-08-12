@@ -1,256 +1,270 @@
-﻿from matplotlib import pyplot as plt
-import numpy as np
+﻿# Data_Scoring/Voltage/V_P.py
+from __future__ import annotations
 from pathlib import Path
+from typing import Optional, Tuple
+
+import numpy as np
 import pandas as pd
-from Data_Scoring.Attribute_Detection.Functions import detect_drop_time, detect_steady_state
-import matplotlib
+from Data_Scoring.Attribute_Detection.Functions import (
+    detect_drop_time,
+    detect_steady_state,
+)
 
- 
-def evaluate_voltage_control (busbar, csv_path_part):
-    
+# ---------------------------------------------------------------------------
+# Scenario configuration
+# ---------------------------------------------------------------------------
 
-    ############### sim_data Column Headers ###############
-  
-    csv_path = Path(csv_path_part) / f"{busbar}.csv"
-    print(csv_path)
-    sim_data = pd.read_csv(csv_path, header=0, skiprows=[1])
-    print(f'alligned path to sim_data variable')
+_SCEN_CFG = {
+    "fast_dip": dict(
+        dip_target=0.90,
+        dip_band=(0.88, 0.92),   # acceptable min band
+        hold_target=0.20,        # seconds
+        hold_tol=0.05,           # ± seconds allowed deviation
+        fall_ref=0.10,           # boundary fall time if outside envelope
+        rise_max=0.60,           # max allowed recovery time budget
+    ),
+    "slow_hold": dict(
+        dip_target=0.90,
+        dip_band=(0.88, 0.92),
+        hold_target=5.00,
+        hold_tol=0.25,
+        fall_ref=0.10,
+        rise_max=0.60,           # adjust if spec allows slower
+    ),
+}
 
-    
-    ############### Ideal Results Creation ###############
-    
-    # The ideal results are calculated based on the RMS simulation data, so the time the simulation lasts can be changed and the script will still work
-
-    # Extract time steps and POC values
-    time_steps = sim_data['All calculations']
-
-    poc_values = sim_data[busbar]
-    print('Matching excel data to internal dataframe')
-    
-    # Initialize the ideal results DataFrame
-    ideal_results = pd.DataFrame({'All calculations (Ideal)': time_steps, busbar + '(Ideal)': np.nan})
-    print(f'removing NaN')
-
-    print(f'finding drop time')
-    # Detect the drop time in the original simulation data
-    drop_time_index = detect_drop_time(poc_values)
-    
-    if drop_time_index is not None:
-        drop_time = time_steps.iloc[drop_time_index]
-        print(f"Drop detected at time {drop_time} s")
-        
-        # Determine the steady state condition and set the final value accordingly
-        last_half_avg = poc_values[int(len(poc_values) * 0.5):].mean()
-        print(f"Average of the last half of the POC values: {last_half_avg}")
-        
-        
-        # Set the POC value just before the drop to 1
-        ideal_results.loc[ideal_results['All calculations (Ideal)'] <= drop_time, busbar + '(Ideal)'] = 1
-        
-        # here I am finding the min value so I can filter out all data before the min value and give that to the steady state function as if I dont do this it will see the time before voltage drop as steady state
-        # also I need the min value to see if its within range and the ideal results need to be adjusted to match the actual fall rate
-        # Step 1: Filtering
-        filtered_poc_values = sim_data[(sim_data[busbar] < 1) & (sim_data[busbar] <= last_half_avg)]
-
-        # Step 2: Finding the Minimum
-        min_value = filtered_poc_values[busbar].min()
-        print(f"Minimum value in the filtered POC data: {min_value}")
-
-        # Assuming 'min_value' is the minimum POC value after which you want to consider data
-        min_value_index = sim_data[sim_data[busbar] == min_value].index[0]
-        print('min value index' + str(min_value_index))
-        min_value_time = time_steps.iloc[min_value_index]
-        print('min value time' + str(min_value_time))
-        filtered_poc_values = sim_data.loc[min_value_index:]
-
-        # To print the first 1000 rows of the DataFrame for debugging purposes
-        print(filtered_poc_values[busbar].head(1000))
+_TIME_COL = "All calculations"   # PF time column name
 
 
-        # Detect the steady state in the original simulation data
-        steady_state_index = detect_steady_state(filtered_poc_values[busbar], last_half_avg)
-        print('Steady state index:')
-        print(steady_state_index)
-        
-        if 0.92 < min_value < 1 :
-            print('min value within range, adjusting ideal')
-            # here I am adjusting the fall rate of the ideal results to match the actual fall rate, so I dont badly score a good result
-                    # Calculate the absolute difference from drop_time + 0.1 for all time steps
-            time_differences = abs(ideal_results['All calculations (Ideal)'] - min_value_time)
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
 
-            # Find the index of the minimum difference
-            closest_index = time_differences.idxmin()
-            for i, value in enumerate(poc_values):
-                if min_value < value < 0.98:
-                    break
+def _infer_scenario(csv_path_part: Path) -> str:
+    s = str(csv_path_part).lower()
+    if "slow_hold" in s:
+        return "slow_hold"
+    if "fast_dip" in s:
+        return "fast_dip"
+    return "fast_dip"
 
-            first_interpolate_value = ideal_results.at[i, 'All calculations (Ideal)']
+def _nearest_boundary(val: float, lo: float, hi: float) -> float:
+    if val < lo: return lo
+    if val > hi: return hi
+    return val
 
-            # Set the value 0.94 at the closest time step
-            ideal_results.at[min_value_index, busbar + '(Ideal)'] = min_value
+def _first_rising_after_min(y: np.ndarray, t: np.ndarray, i_min: int,
+                            slope_eps: float = 2e-4,
+                            window: int = 5) -> Optional[int]:
+    if i_min >= len(y) - 2:
+        return None
+    dy = np.diff(y) / np.diff(t)
+    dy = np.concatenate([dy[:1], dy])  # align length to y
+    if window > 1:
+        ker = np.ones(window) / window
+        dy_s = np.convolve(dy, ker, mode="same")
+    else:
+        dy_s = dy
+    for i in range(i_min, len(dy_s) - window):
+        if np.all(dy_s[i:i+window] > slope_eps):
+            return i
+    return None
 
-            voltage_descent = ideal_results[ideal_results['All calculations (Ideal)'] >= first_interpolate_value].index.min()
+def _build_ideal(time: np.ndarray,
+                 drop_t: float,
+                 final_v: float,
+                 cfg: dict,
+                 *,
+                 in_envelope: bool,
+                 min_t: float,
+                 min_v: float,
+                 hold_start_t: Optional[float],
+                 steady_t: Optional[float]) -> np.ndarray:
+    dip_lo, dip_hi = cfg["dip_band"]
+    hold_target    = cfg["hold_target"]
+    hold_tol       = cfg["hold_tol"]
+    fall_ref       = cfg["fall_ref"]
+    rise_max       = cfg["rise_max"]
 
-            # Step 2: Set values to NaN within this range (excluding the start and end points)
-            ideal_results.loc[(ideal_results.index > voltage_descent) & (ideal_results.index < min_value_index), busbar + '(Ideal)'] = np.nan
+    ideal = np.full_like(time, np.nan, dtype=float)
+    ideal[time <= drop_t] = 1.0  # pre-drop flat at 1.0 p.u.
 
-            # Step 3: Perform linear interpolation
-            ideal_results[busbar + '(Ideal)'] = ideal_results[busbar + '(Ideal)'].interpolate(method='linear')
-            
-        else:
-            print('setting drop to 0.94')
-                    # Calculate the absolute difference from drop_time + 0.1 for all time steps
-            time_differences = abs(ideal_results['All calculations (Ideal)'] - (drop_time + 0.1))
+    if in_envelope:
+        # match measured fall slope and depth
+        t_fall_start = drop_t
+        t_fall_end   = max(min_t, drop_t + 1e-3)
+        v_fall_end   = min_v
 
-            # Find the index of the minimum difference
-            closest_index = time_differences.idxmin()
+        mask_fall = (time >= t_fall_start) & (time <= t_fall_end)
+        ideal[mask_fall] = np.interp(time[mask_fall],
+                                     [t_fall_start, t_fall_end],
+                                     [1.0, v_fall_end])
 
-            # Set the value 0.94 at the closest time step
-            ideal_results.at[closest_index, busbar + '(Ideal)'] = 0.94
+        # hold at min_v until we detect a rise (or zero-length hold if unknown)
+        t_hold_end = max(hold_start_t or min_t, min_t)
+        mask_hold  = (time > min_t) & (time <= t_hold_end)
+        ideal[mask_hold] = v_fall_end
 
-            voltage_descent = ideal_results[ideal_results['All calculations (Ideal)'] >= drop_time].index.min()
-
-            # Step 2: Set values to NaN within this range (excluding the start and end points)
-            ideal_results.loc[(ideal_results.index > voltage_descent) & (ideal_results.index < closest_index), busbar + '(Ideal)'] = np.nan
-
-            # Step 3: Perform linear interpolation
-            ideal_results[busbar + '(Ideal)'] = ideal_results[busbar + '(Ideal)'].interpolate(method='linear')
-
-
-        if steady_state_index is not None:
-            # Adjust the steady_state_index with the starting index of filtered_poc_values
-            adjusted_index = steady_state_index + min_value_index
-            print(f"Steady state reached at time {time_steps.iloc[adjusted_index]} s")
-            actual_rise_time = time_steps.iloc[adjusted_index] - drop_time
-            print(f"Actual rise time: {actual_rise_time} s")
-            # ... rest of your code where you use steady_state_index ...
-            if actual_rise_time < 0.6 :
-                is_steady_state = 0.95 <= last_half_avg <= 1
-                final_value = last_half_avg if is_steady_state else 1
-                post_final_drop_time = drop_time + actual_rise_time
-                ideal_results.loc[ideal_results['All calculations (Ideal)'] >= post_final_drop_time, busbar + '(Ideal)'] = final_value
-                """
-                # Calculate the new slope for the ideal results to match the actual rise rate
-                slope = (0.94 - 1) / actual_rise_time  # The drop is to 0.94 as per user's script
-            
-                # Apply this new slope to the ideal results
-                for i in range(drop_time_index + 1, steady_state_index + 1):
-                    time_diff = time_steps.iloc[i] - drop_time
-                    ideal_results.at[i, busbar + '(Ideal)'] = 1 + slope * time_diff
-
-                # Re-interpolate if necessary for any subsequent points
-                ideal_results[busbar + '(Ideal)'] = ideal_results[busbar + '(Ideal)'].interpolate(method='linear')
-                """
-                            # Step 1: Identify the range for interpolation
-                # Find the index for post_final_drop_time
-                post_final_drop_index = ideal_results[ideal_results['All calculations (Ideal)'] >= post_final_drop_time].index.min()
-
-                # Step 2: Set values to NaN within this range (excluding the start and end points)
-                ideal_results.loc[(ideal_results.index > closest_index) & (ideal_results.index < post_final_drop_index), busbar + '(Ideal)'] = np.nan
-
-                # Step 3: Perform linear interpolation
-                ideal_results[busbar + '(Ideal)'] = ideal_results[busbar + '(Ideal)'].interpolate(method='linear')
-                print("Ideal results adjusted to match the actual rise rate")
-            else:
-                print("Steady state not reached within the simulation time.")
-                is_steady_state = 0.95 <= last_half_avg <= 1
-                final_value = last_half_avg if is_steady_state else 1
-                post_final_drop_time = drop_time + 0.1 + 0.5
-                ideal_results.loc[ideal_results['All calculations (Ideal)'] >= post_final_drop_time, busbar + '(Ideal)'] = final_value
-     
-                # Handle the case where the steady state is not found
-                # Step 1: Identify the range for interpolation
-                # Find the index for post_final_drop_time
-                post_final_drop_index = ideal_results[ideal_results['All calculations (Ideal)'] >= post_final_drop_time].index.min()
-
-                # Step 2: Set values to NaN within this range (excluding the start and end points)
-                ideal_results.loc[(ideal_results.index > closest_index) & (ideal_results.index < post_final_drop_index), busbar + '(Ideal)'] = np.nan
-
-                # Step 3: Perform linear interpolation
-                ideal_results[busbar + '(Ideal)'] = ideal_results[busbar + '(Ideal)'].interpolate(method='linear')
-                print("Ideal results were not adjusted to match the actual rise rate")
+        # recovery: ramp to final_v by steady_t (or within rise_max if steady_t unknown)
+        t_rec_start = t_hold_end
+        t_rec_end   = max((steady_t or (t_rec_start + rise_max)), t_rec_start + 1e-3)
+        mask_rec    = (time > t_rec_start) & (time <= t_rec_end)
+        ideal[mask_rec] = np.interp(time[mask_rec],
+                                    [t_rec_start, t_rec_end],
+                                    [v_fall_end, final_v])
+        ideal[time >= t_rec_end] = final_v
 
     else:
-        print("No significant drop detected in the POC voltage")
-        print("Likely Power Factory Error")
+        # boundary ideal closest to allowed limits
+        dip_ref = _nearest_boundary(min_v, dip_lo, dip_hi)
 
-    # Save the final ideal results to an Excel file, left as a comment as it is not needed for the script but can be used for debugging !!!!!!!!!!!
-    ideal_results_file_path = (r'C:\Users\james\OneDrive\MSc Project\results_ideal\Ideal Excel Results Voltage.csv') 
-    ideal_results.to_csv(ideal_results_file_path, index=False)
-    
-    ############### Importing Ideal Data ###############
+        # fall over reference time
+        t_fall_start = drop_t
+        t_fall_end   = drop_t + fall_ref
+        mask_fall = (time >= t_fall_start) & (time <= t_fall_end)
+        ideal[mask_fall] = np.interp(time[mask_fall],
+                                     [t_fall_start, t_fall_end],
+                                     [1.0, dip_ref])
 
-    Ideal_Results_Table = ideal_results             #pd.read_csv(r'C:\Users\JamesThornton\source\repos\Python Dissertation Script\Python Dissertation Script\Ideal Excel Results.csv')
+        # hold for required duration
+        t_hold_end = t_fall_end + hold_target
+        mask_hold  = (time > t_fall_end) & (time <= t_hold_end)
+        ideal[mask_hold] = dip_ref
+
+        # recover within rise_max
+        t_rec_end = t_hold_end + rise_max
+        mask_rec  = (time > t_hold_end) & (time <= t_rec_end)
+        ideal[mask_rec] = np.interp(time[mask_rec],
+                                    [t_hold_end, t_rec_end],
+                                    [dip_ref, final_v])
+        ideal[time >= t_rec_end] = final_v
+
+    # fill any guard-induced NaNs
+    if np.isnan(ideal).any():
+        s = pd.Series(ideal)
+        ideal = s.fillna(method="ffill").fillna(method="bfill").to_numpy()
+
+    return ideal
 
 
-    # Using Genetic algorithms to find the best kp & ki values plan as of 31/12/2023 14.11
-    
-    
-    ############### Scoring between Ideal Data and Actual Data ###############
-    if 0.92 < min_value < 1 :
-        x_start = min_value  # Set your starting x-value to where the simualtion starts in the time domain
-    else :
-        x_start = 0.94
-        
-    # Filter the data
-    filtered_sim_data = sim_data[sim_data[busbar] >= x_start]
-    filtered_ideal_data = Ideal_Results_Table[Ideal_Results_Table[busbar + '(Ideal)'] >= x_start]
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
-    # Assuming the time and voltage columns are still correctly aligned after filtering
-    #mae_time = np.abs(filtered_sim_data['All calculations'] - filtered_ideal_data['All calculations (b:tnow in s) (Ideal)']).mean()
-    mae_voltage = float(np.abs(filtered_sim_data[busbar] - filtered_ideal_data[busbar + '(Ideal)']).mean())
-    
-    ############### Steady State Peak Ratio ###############
-    
-    # Load the Excel file
+def evaluate_voltage_control(busbar: str, csv_path_part) -> float:
+    """
+    Read '<csv_path_part>/<busbar>.csv', detect drop/hold/recovery,
+    create an ideal trace using envelope-aware rules, export the ideal CSV
+    next to the sim for debugging, and return a fitness score (MAE with
+    optional overshoot penalty).
+    """
+    csv_root  = Path(csv_path_part)
+    scenario  = _infer_scenario(csv_root)
+    cfg       = _SCEN_CFG[scenario]
 
-    # Select the column - replace 'ColumnName' with your actual column name
-    column = sim_data[busbar]
+    # load sim
+    csv_path = csv_root / f"{busbar}.csv"
+    print(csv_path)
+    sim_data = pd.read_csv(csv_path, header=0, skiprows=[1])
 
-    # Find the lowest number in the column
-    lowest_number = column.min()
-    
-    filtered_sim_data_max = sim_data[sim_data['All calculations'] > lowest_number]
-        
-    # Find the maximum POC voltage value
-    max_POC_voltage_value = filtered_sim_data_max[busbar].max()
-    
-    SS_Peak_Ratio_PU = (max_POC_voltage_value - final_value) / final_value
-    
-        
-    ############### Fitness Value ###############
+    time = sim_data[_TIME_COL].to_numpy(dtype=float)
+    v    = sim_data[busbar].to_numpy(dtype=float)
 
-    Overshoot_Compensation = SS_Peak_Ratio_PU + 1
-    
-    if mae_voltage <= 0.00085 and max_POC_voltage_value > final_value:
-        fitness_value = mae_voltage * Overshoot_Compensation
-    else  :
+    if len(time) < 5 or len(v) != len(time):
+        print("⚠️ Not enough points or column mismatch")
+        return float("inf")
+
+    # baseline final value from latter half
+    final_v = float(np.mean(v[int(len(v)*0.5):]))
+
+    # detect drop point
+    drop_idx = detect_drop_time(pd.Series(v))
+    if drop_idx is None:
+        print("⚠️ No significant drop detected – assuming early drop")
+        drop_idx = max(0, int(0.05 * len(time)))
+    drop_t = float(time[drop_idx])
+
+    # minimum after drop
+    post = v[drop_idx:] if drop_idx < len(v) else v
+    min_idx = drop_idx + int(np.argmin(post)) if len(post) else drop_idx
+    min_v   = float(v[min_idx])
+    min_t   = float(time[min_idx])
+
+    # steady-state timing (from min onwards)
+    v_after_min = pd.Series(v[min_idx:])
+    ss_rel = detect_steady_state(v_after_min, final_v)
+    steady_idx = (min_idx + int(ss_rel)) if ss_rel is not None else None
+    steady_t   = float(time[steady_idx]) if steady_idx is not None else None
+
+    # approximate hold end: first sustained rise after min
+    hold_start_idx = _first_rising_after_min(v, time, min_idx)
+    hold_start_t   = float(time[hold_start_idx]) if hold_start_idx is not None else None
+
+    # envelope checks
+    dip_lo, dip_hi = cfg["dip_band"]
+    within_dip  = (dip_lo <= min_v <= dip_hi)
+
+    hold_len = (hold_start_t - drop_t) if hold_start_t is not None else 0.0
+    within_hold = abs(hold_len - cfg["hold_target"]) <= cfg["hold_tol"]
+
+    if steady_t is not None:
+        total_down = steady_t - drop_t
+        within_rise = (total_down - max(hold_len, cfg["hold_target"])) <= cfg["rise_max"] + 1e-6
+    else:
+        within_rise = False
+
+    in_envelope = bool(within_dip and within_hold and within_rise)
+
+    # build ideal
+    ideal = _build_ideal(
+        time=time,
+        drop_t=drop_t,
+        final_v=final_v,
+        cfg=cfg,
+        in_envelope=in_envelope,
+        min_t=min_t,
+        min_v=min_v,
+        hold_start_t=hold_start_t,
+        steady_t=steady_t,
+    )
+
+    # ----- export ideal for debugging (same folder as sim)
+    try:
+        ideal_df = pd.DataFrame({
+            "All calculations": time,
+            f"{busbar}_ideal": ideal,
+        })
+        ideal_path = csv_root / f"{busbar}_ideal.csv"
+        ideal_df.to_csv(ideal_path, index=False)
+        print(f"📝 wrote ideal CSV → {ideal_path}")
+    except Exception as e:
+        print(f"⚠️ ideal export failed: {e}")
+
+    # ----- scoring window
+    dt = np.median(np.diff(time))
+    t_start = max(time[0], drop_t - 2*dt)
+    t_end   = (steady_t + 1.0) if steady_t is not None else time[-1]
+    mask    = (time >= t_start) & (time <= t_end)
+    if not np.any(mask):
+        mask = slice(None)
+
+    mae_voltage  = float(np.mean(np.abs(v[mask] - ideal[mask])))
+
+    vmax_after   = float(np.max(v[min_idx:])) if min_idx < len(v) else float(np.max(v))
+    overshoot_pu = max(0.0, (vmax_after - final_v) / max(1e-6, final_v))
+
+    if mae_voltage <= 8.5e-4 and overshoot_pu > 0:
+        fitness_value = mae_voltage * (1.0 + overshoot_pu)
+    else:
         fitness_value = mae_voltage
 
+    # debug summary
+    print(f"Scenario: {scenario}")
+    print(f"Drop t = {drop_t:.4f}s, Min v = {min_v:.4f} at t={min_t:.4f}s")
+    if steady_t is not None:
+        print(f"Steady t = {steady_t:.4f}s; hold≈{hold_len:.3f}s; in_envelope={in_envelope}")
+    else:
+        print(f"Steady not detected; hold≈{hold_len:.3f}s; in_envelope={in_envelope}")
+    print(f"MAE = {mae_voltage:.6g}, Overshoot = {overshoot_pu:.4g}, Fitness = {fitness_value:.6g}")
 
-    #print("Time column Mean Absolute Error (after x_start) = " + str(mae_time))
-    print("Voltage column Mean Absolute Error (after x_start) = " + str(mae_voltage))
-    #print("Max POC Voltage Value = " + str(max_POC_voltage_value))
-    '''
-    print("kp = " + str(kp))
-    print("ki = " + str(ki))
-    '''
-    print("Fitness Value = " + str(fitness_value))
-    
-    matplotlib.pyplot.close('all')                                                          # Close all open figures to save memory 
-    '''
-    if return_gradients:
-        # Approximate the gradient with respect to kp
-        delta = 0.01  # Small change to apply to kp and ki
-        kp_perturbed = kp + delta
-        fitness_perturbed_kp = evaluate_voltage_control((ki, kp_perturbed), pf_data, return_gradients=False)  # Evaluate fitness with perturbed kp without gradients
-        grad_kp = (fitness_perturbed_kp - fitness_value) / delta  # Approximate partial derivative with respect to kp
-
-        # Approximate the gradient with respect to ki
-        ki_perturbed = ki + delta
-        fitness_perturbed_ki = evaluate_voltage_control((ki_perturbed, kp), pf_data, return_gradients=False)  # Evaluate fitness with perturbed ki without gradients
-        grad_ki = (fitness_perturbed_ki - fitness_value) / delta  # Approximate partial derivative with respect to ki
-
-        return fitness_value, grad_kp, grad_ki
-    '''
-    return (fitness_value)
+    return float(fitness_value)
