@@ -33,6 +33,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Machine_Learning\ML_PSO_AVR.py" />
+    <Compile Include="PowerFactory_Interaction\Run_Final_RMS.py" />
     <Compile Include="PowerFactory_Interaction\write_avr_params.py" />
     <Compile Include="waste\ML_DualHybrid_AVR.py" />
     <Compile Include="waste\ML_DualHybrid_AVR_wave.py" />

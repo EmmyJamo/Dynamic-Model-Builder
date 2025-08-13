@@ -8,6 +8,7 @@ import PowerFactory_Interaction.Run_Initial_RMS as Run_In_RMS
 import Data_Processing.Score_First_Data_Set as Score
 import PowerFactory_Interaction.Tune_Isolated_Gens_Wrapper as Tune
 import Data_Processing.Seed_AVR as avs
+import PowerFactory_Interaction.Run_Final_RMS as Run_Final_RMS
 
 # This code isnt great, I rewrite the same code in multiple files, but I have rushed this and I am running out of time to finish this before I start my exams.
 
@@ -54,6 +55,9 @@ GI.build_infinite_bus_islands(pf_data)
 
 # Wrapper for Tuniong Isolated Generators
 Tune.tune_selected_generators(pf_data)
+
+# Run Final Full Simulations
+Run_Final_RMS.run_final_full_simulations(pf_data)
 
 
 

@@ -163,6 +163,10 @@ def _write_best_vector_csv(var_name: str, best_score: float, best_iter: int, vec
     print(f"   📝 best-vector saved → {p}")
     return p
 
+def _vec_to_param_dict(vec: list[float]) -> dict[str, float]:
+    # Uses the same order as ML_PSO_AVR.TUNED_TAGS
+    return {tag: float(vec[i]) for i, tag in enumerate(TUNED_TAGS)}
+
 # ---------------------------------------------------------------------------
 # plateau detection on score stream
 # ---------------------------------------------------------------------------
@@ -250,7 +254,7 @@ def tune_selected_generators(pf_data,
         _set_voltage_source(pf_data, bus, R, X, U0)
 
         # seed → bind the exact AVR → prepare PSO
-        Seed._seed_avr_parameters(pf_data, meta, gname)
+        Seed._seed_avr_parameters(pf_data, meta, gname, "AVR_Seed")
         if not PSO.bind_avr(pf_data, meta):
             print(f"   ⚠️ could not bind AVR for «{gname}». Skipping.")
             _deactivate_variant(pf_data, var_name)
@@ -299,15 +303,24 @@ def tune_selected_generators(pf_data,
             PSO.write_candidate(pf_data, meta, best_vec)
         else:
             # fall back to optimiser’s best if never improved
-            PSO.write_candidate(pf_data, meta, PSO.get_best(gname))
+            best_vec = PSO.get_best(gname)
+            PSO.write_candidate(pf_data, meta, best_vec)
+
+        # IMPORTANT: capture params BEFORE deactivating the variant
+        captured = _capture_avr_params(pf_data, meta)
+        if not captured:
+            # fallback: build from the vector we just wrote
+            captured = _vec_to_param_dict(best_vec)
 
         _deactivate_variant(pf_data, var_name)
 
-        # store in snapshot
-        meta["AVR_Final"]   = _capture_avr_params(pf_data, meta)
-        meta["final_score"] = best_score
-        meta["tuned_iter"]  = best_iter
-        meta["tuning_ts"]   = datetime.datetime.now().isoformat(timespec="seconds")
+        # store in snapshot (named fields, not a raw list)
+        meta["AVR_Final"]    = captured
+        meta["AVR_FinalVec"] = _vec_to_param_dict(best_vec)  # debugging
+        meta["final_score"]  = float(best_score)
+        meta["tuned_iter"]   = int(best_iter)
+        meta["tuning_ts"]    = datetime.datetime.now().isoformat(timespec="seconds")
+
 
     snap_p.write_text(json.dumps(snap, indent=2))
     print("\n✅  Tuning finished – snapshot JSON updated")

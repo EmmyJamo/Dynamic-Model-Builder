@@ -114,8 +114,8 @@ def _maybe_write_via_params(avr_obj, p_dict: Dict[str, float]) -> bool:
 def _seed_avr_parameters(pf_data,
                          meta: Dict[str, Any],
                          gname: str,
+                         json_key,
                          *,
-                         json_key: str = "AVR_Seed",
                          dry_run: bool = False) -> bool:
     """
     Write parameters from JSON into the generator’s AVR ElmDsl.
