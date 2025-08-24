@@ -1,4 +1,5 @@
-﻿# Machine_Learning/ML_PSO_AVR.py
+﻿
+# Machine_Learning/ML_PSO_AVR.py
 # ────────────────────────────────────────────────────────────────────────────
 #  Lightweight PSO optimiser for AVR parameters (pyswarms-based)
 #  Single-particle ask/tell pattern (one RMS run per particle).
@@ -16,7 +17,7 @@ from __future__ import annotations
 import numpy as np
 import numpy.random as npr
 import pyswarms as ps                     # pip install pyswarms
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List
 
 # ---------------------------------------------------------------------------
 # Tuned parameter list – keep order stable and consistent with writer
@@ -40,21 +41,6 @@ _BOUNDS_DEF = {
     "Vrmin": (-20.0, -1.0),
 }
 
-# Default PSO + anti-stagnation behaviour (overridable via meta["PSO_Options"])
-_PSO_DEFAULTS = dict(
-    c1=1.5, c2=1.5, w=0.6,                      # base options
-    vmax_frac=0.25,                              # clamp |v| <= frac*(ub-lb)
-    jitter0=0.05, jitter_decay=0.92,             # Gaussian jitter (% of span)
-    plateau_gens=3,                              # generations with no-improve to trigger re-injection
-    tol_abs=2e-4, tol_rel=0.01,                  # improvement thresholds
-    reinject_frac=0.20,                          # replace worst 20% on plateau
-    explore_frac_init=0.60,                      # radius (as % of span) around gbest for reinjection
-    explore_frac_floor=0.20,                     # minimum radius as it anneals
-    w_bounds=(0.35, 0.90),                       # inertia bounds
-    w_up=1.05, w_down=0.99,                      # how quickly w adapts
-    seed=None,                                   # reproducibility (int|None)
-)
-
 # ────────────────────────────────────────────────────────────────────────────
 # Helpers – bounds and seed vector
 # ────────────────────────────────────────────────────────────────────────────
@@ -67,6 +53,7 @@ def _bounds_for(meta: Dict[str, Any]) -> tuple[np.ndarray, np.ndarray]:
         ub.append(float(hi))
     return np.asarray(lb, dtype=float), np.asarray(ub, dtype=float)
 
+
 def _seed_vec(meta: Dict[str, Any],
               lb: np.ndarray, ub: np.ndarray) -> np.ndarray:
     """Return a seed vector clipped into [lb, ub]."""
@@ -77,109 +64,23 @@ def _seed_vec(meta: Dict[str, Any],
     )
     return np.clip(vec, lb, ub)
 
-def _merge_opts(meta: Dict[str, Any]) -> dict:
-    opts = _PSO_DEFAULTS.copy()
-    user = meta.get("PSO_Options") or {}
-    for k, v in user.items():
-        if k in opts:
-            opts[k] = v
-    # allow explicit reproducible seed in meta["PSO_Seed"]
-    if meta.get("PSO_Seed") is not None:
-        opts["seed"] = int(meta["PSO_Seed"])
-    return opts
-
-# ────────────────────────────────────────────────────────────────────────────
-# Utility samplers
-# ────────────────────────────────────────────────────────────────────────────
-def _lhs_unit(n: int, d: int, rng) -> np.ndarray:
-    """Simple Latin Hypercube sample in [0,1]^d using a RNG with .random()."""
-    # stratify each dim into n bins, then permute bins per dim
-    u = (np.arange(n) + rng.random(n)) / n
-    out = np.empty((n, d), dtype=float)
-    for j in range(d):
-        out[:, j] = rng.permutation(u)
-    return out
-
-def _reflect_into_bounds(x: np.ndarray, lb: np.ndarray, ub: np.ndarray) -> np.ndarray:
-    """Reflect positions that go out of bounds back into [lb, ub].
-    Works for both 1-D vectors (DIM,) and 2-D matrices (N, DIM).
-    """
-    x_ref = np.asarray(x, dtype=float).copy()
-
-    # Broadcast lb/ub to match x's ndim
-    if x_ref.ndim == 1:
-        lb_b = np.asarray(lb, dtype=float)
-        ub_b = np.asarray(ub, dtype=float)
-    else:
-        lb_b = np.asarray(lb, dtype=float).reshape(1, -1)
-        ub_b = np.asarray(ub, dtype=float).reshape(1, -1)
-
-    # Guard zero-span dims to avoid modulo by zero
-    span = np.maximum(ub_b - lb_b, 1e-12)
-
-    # First reflect values below/above, then clamp for safety
-    x_ref = np.where(
-        x_ref < lb_b,
-        lb_b + (lb_b - x_ref) % (2.0 * span),
-        x_ref,
-    )
-    x_ref = np.where(
-        x_ref > ub_b,
-        ub_b - (x_ref - ub_b) % (2.0 * span),
-        x_ref,
-    )
-
-    return np.minimum(np.maximum(x_ref, lb_b), ub_b)
-
-
 # ────────────────────────────────────────────────────────────────────────────
 # PSO state (one per generator) – manual step to avoid calling opt.step()
-# with anti-stagnation logic and adaptive inertia
 # ────────────────────────────────────────────────────────────────────────────
 class _PSOState:
     def __init__(self,
                  seed: np.ndarray,
                  lb: np.ndarray,
                  ub: np.ndarray,
-                 n_particles: int = 10,
-                 opts: dict | None = None):
-        opts = (opts or {}).copy()
+                 n_particles: int = 10):
+        seed = np.clip(seed, lb, ub)
         self.lb, self.ub = lb, ub
         self.n_part      = n_particles
+        self.options     = {"c1": 1.5, "c2": 1.5, "w": 0.6}
 
-        # options / behaviour knobs
-        self.c1     = float(opts.get("c1", _PSO_DEFAULTS["c1"]))
-        self.c2     = float(opts.get("c2", _PSO_DEFAULTS["c2"]))
-        self.w      = float(opts.get("w",  _PSO_DEFAULTS["w"]))
-        self.vmax_f = float(opts.get("vmax_frac", _PSO_DEFAULTS["vmax_frac"]))
-        self.j0     = float(opts.get("jitter0", _PSO_DEFAULTS["jitter0"]))
-        self.jdec   = float(opts.get("jitter_decay", _PSO_DEFAULTS["jitter_decay"]))
-        self.plat_g = int(opts.get("plateau_gens", _PSO_DEFAULTS["plateau_gens"]))
-        self.tol_abs= float(opts.get("tol_abs", _PSO_DEFAULTS["tol_abs"]))
-        self.tol_rel= float(opts.get("tol_rel", _PSO_DEFAULTS["tol_rel"]))
-        self.reinj_f= float(opts.get("reinject_frac", _PSO_DEFAULTS["reinject_frac"]))
-        self.expl_f = float(opts.get("explore_frac_init", _PSO_DEFAULTS["explore_frac_init"]))
-        self.expl_floor = float(opts.get("explore_frac_floor", _PSO_DEFAULTS["explore_frac_floor"]))
-        self.w_min, self.w_max = opts.get("w_bounds", _PSO_DEFAULTS["w_bounds"])
-        self.w_up   = float(opts.get("w_up", _PSO_DEFAULTS["w_up"]))
-        self.w_down = float(opts.get("w_down", _PSO_DEFAULTS["w_down"]))
-
-        # reproducibility
-        if opts.get("seed") is not None:
-            npr.seed(int(opts["seed"]))
-
-        seed = np.clip(seed, lb, ub)
-        span = (ub - lb)
-
-        # initial swarm (1 seed + LHS randoms within bounds)
-        if n_particles > 1:
-            unit = _lhs_unit(n_particles - 1, DIM, npr)
-            rand_part = lb + unit * span
-            init_pos  = np.vstack([seed, rand_part])
-        else:
-            init_pos  = seed.reshape(1, -1)
-
-        self.options = {"c1": self.c1, "c2": self.c2, "w": self.w}
+        # initial swarm (1 seed + randoms within bounds)
+        rand_part = npr.uniform(lb, ub, size=(n_particles - 1, DIM))
+        init_pos  = np.vstack([seed, rand_part])
 
         self.opt = ps.single.GlobalBestPSO(
             n_particles=n_particles,
@@ -199,13 +100,6 @@ class _PSOState:
         if sw.velocity is None or sw.velocity.shape != sw.position.shape:
             sw.velocity = np.zeros_like(sw.position)
 
-        # anti-stagnation state
-        self.vmax     = self.vmax_f * (ub - lb)
-        self.generation = 0
-        self.best_hist: List[float] = []
-        self.no_improve_gens = 0
-        self.jitter_scale = self.j0  # annealed
-
     # ---------------- ask / tell ------------------------------------------
     def ask_one(self) -> List[float]:
         if self._next_idx >= self.n_part:               # new generation
@@ -215,48 +109,6 @@ class _PSOState:
         vec = self._batch_pos[self._next_idx]
         self._next_idx += 1
         return vec.tolist()
-
-    def _maybe_adapt_inertia(self, improved: bool):
-        # if we improved, nudge w down (exploit); else up (explore)
-        if improved:
-            self.w = max(self.w_min, min(self.w_max, self.w * self.w_down))
-        else:
-            self.w = max(self.w_min, min(self.w_max, self.w * self.w_up))
-        # keep pyswarms option in sync
-        self.opt.options["w"] = self.w
-
-    def _plateau_triggered(self, prev_best: float, new_best: float) -> bool:
-        # improvement threshold: relative OR absolute
-        if not np.isfinite(prev_best):
-            return False
-        delta = prev_best - new_best
-        thresh = max(self.tol_abs, self.tol_rel * abs(prev_best))
-        return delta <= thresh
-
-    def _reinject_diversity(self, sw):
-        """Replace worst K particles around (or away from) gbest."""
-        K = max(1, int(self.reinj_f * self.n_part))
-        # indices of worst K by pbest_cost (or batch costs if first gen)
-        if getattr(sw, "pbest_cost", None) is not None and sw.pbest_cost.size:
-            order = np.argsort(sw.pbest_cost)[::-1]  # descending (worst first)
-        else:
-            order = np.argsort(self._batch_costs)[::-1]
-        worst_idx = order[:K]
-
-        gbest = sw.best_pos.copy()
-        span  = (self.ub - self.lb)
-        radius = np.maximum(self.expl_floor, self.expl_f) * span
-        # sample around gbest within a box, then reflect into bounds
-        noise = (npr.random((K, DIM)) - 0.5) * 2.0 * radius
-        new_pos = _reflect_into_bounds(gbest + noise, self.lb, self.ub)
-        sw.position[worst_idx, :] = new_pos
-
-        # reset their velocities to small random values
-        sw.velocity[worst_idx, :] = (npr.uniform(-0.1, 0.1, size=(K, DIM)) * span)
-
-        # slowly anneal explore radius & jitter
-        self.expl_f = max(self.expl_floor, self.expl_f * 0.9)
-        self.jitter_scale *= self.jdec
 
     def tell_one(self, vec: List[float], score: float) -> None:
         idx = self._next_idx - 1                        # particle just scored
@@ -270,12 +122,11 @@ class _PSOState:
             if getattr(sw, "pbest_cost", None) is None or sw.pbest_cost.size == 0:
                 sw.pbest_cost = self._batch_costs.copy()
                 sw.pbest_pos  = self._batch_pos.copy()
+                # Initialize global best from pbest
                 best_idx = int(np.argmin(sw.pbest_cost))
                 sw.best_cost = float(sw.pbest_cost[best_idx])
                 sw.best_pos  = sw.pbest_pos[best_idx].copy()
-                prev_best = np.inf
             else:
-                prev_best = float(sw.best_cost)
                 # Update personal bests
                 upd = self._batch_costs < sw.pbest_cost
                 if np.any(upd):
@@ -288,43 +139,18 @@ class _PSOState:
                     sw.best_cost = float(sw.pbest_cost[best_idx])
                     sw.best_pos  = sw.pbest_pos[best_idx].copy()
 
-            # Adapt inertia & track plateau
-            improved = float(sw.best_cost) < prev_best
-            self._maybe_adapt_inertia(improved)
-            if self._plateau_triggered(prev_best, float(sw.best_cost)):
-                self.no_improve_gens += 1
-            else:
-                self.no_improve_gens = 0
-
             # Manual velocity & position update (no call to opt.step)
             r1 = npr.random_sample(size=(self.n_part, DIM))
             r2 = npr.random_sample(size=(self.n_part, DIM))
-            c1, c2, w = self.c1, self.c2, self.w
-
-            # Gaussian jitter (annealed) promotes exploration
-            jitter = self.jitter_scale * (self.ub - self.lb) * npr.normal(size=sw.position.shape)
+            c1, c2, w = self.options["c1"], self.options["c2"], self.options["w"]
 
             sw.velocity = (
                 w * sw.velocity
                 + c1 * r1 * (sw.pbest_pos - sw.position)
                 + c2 * r2 * (sw.best_pos   - sw.position)
             )
-
-            # clamp velocities
-            sw.velocity = np.clip(sw.velocity, -self.vmax, self.vmax)
-
-            # position update + jitter, then reflect into bounds
-            new_pos = sw.position + sw.velocity + jitter
-            sw.position = _reflect_into_bounds(new_pos, self.lb, self.ub)
-
-            # plateau-based diversity injection
-            if self.no_improve_gens >= self.plat_g and self.n_part > 2:
-                self._reinject_diversity(sw)
-                self.no_improve_gens = 0  # reset after reinjection
-
+            sw.position = np.clip(sw.position + sw.velocity, self.lb, self.ub)
             # next ask_one() begins a new generation
-            self.generation += 1
-            self.best_hist.append(float(sw.best_cost))
 
     # helper ---------------------------------------------------------------
     def best_vector(self) -> List[float]:
@@ -339,8 +165,7 @@ def prepare_pso(pf_data, meta: Dict[str, Any], *, n_particles: int = 10) -> List
     g      = meta["name"]
     lb, ub = _bounds_for(meta)
     seed   = _seed_vec(meta, lb, ub)
-    opts   = _merge_opts(meta)
-    _PSO_REG[g] = _PSOState(seed, lb, ub, n_particles, opts)
+    _PSO_REG[g] = _PSOState(seed, lb, ub, n_particles)
     print(f"      🐦  PSO ready for «{g}»  (particles={n_particles})")
     return TUNED_TAGS
 

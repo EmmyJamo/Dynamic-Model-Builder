@@ -43,6 +43,7 @@
     <Compile Include="PowerFactory_Control\Run_RMS_Sim.py" />
     <Compile Include="PowerFactory_Interaction\Run_Initial_RMS.py" />
     <Compile Include="waste\ML_Wrapper.py" />
+    <Compile Include="waste\newest_old_ml.py" />
     <Compile Include="waste\Seed_AVR_old.py" />
     <Compile Include="waste\Tune_Isolated_Gens.py" />
     <Compile Include="PowerFactory_Interaction\Tune_Isolated_Gens_Wrapper.py" />
@@ -69,6 +70,8 @@
     <Compile Include="DataClasses\Global_PF_Data.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="waste\v_score_20s_sim_only.py" />
+    <Compile Include="waste\v_tune_20s_and_100s_added.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Data_Scoring\" />

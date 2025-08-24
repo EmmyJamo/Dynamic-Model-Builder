@@ -1,7 +1,7 @@
 ﻿# Data_Scoring/Voltage/V_P.py
 from __future__ import annotations
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -39,29 +39,22 @@ _OSC = dict(
     rms_ok=0.0015,
     # zero crossings per second allowed (≈ 2×freq). 1.2 ≈ 0.6 Hz nominal.
     zc_per_s_ok=1.2,
-    k_rms=2.0,      # strength of RMS penalty (core/tail use different weights below)
-    k_zc=0.25,      # strength of zero-cross penalty
-    ma_win_s=0.5,   # smoothing window for residual (seconds)
-    eval_tail_s=4.0 # (legacy) eval on last N seconds of the *core* window
-)
-
-# Extra weights for *long-run* (100 s) stability add-on
-_LONG = dict(
-    k_rms=1.0,     # RMS residual (tail)
-    k_zc =0.20,    # zero-cross rate (tail)
-    k_slope=2.0,   # steady drift slope (tail)
-    k_bias =1.5,   # late bias vs V_pre (tail)
+    k_rms=2.0,    # strength of RMS penalty
+    k_zc=0.25,    # strength of zero-cross penalty
+    ma_win_s=0.5, # smoothing window for residual (seconds)
+    eval_tail_s=4.0,  # evaluate oscillations on the last N seconds of the run
 )
 
 _DRIFT = dict(
     slope_ok=2.0e-4, # |dV/dt| tolerated in p.u./s (we penalise mostly negative)
     bias_ok=0.005,   # allowed late-time bias vs V_pre (p.u.)
-    k_slope=3.0,     # slope penalty gain (used for core window only)
-    k_bias=2.0,      # bias penalty gain (used for core window only)
-    tail_s=6.0,      # evaluate slope over last N seconds (core)
+    k_slope=3.0,     # slope penalty gain
+    k_bias=2.0,      # bias penalty gain
+    tail_s=6.0,      # evaluate slope over last N seconds
 )
 
 _TIME_COL = "All calculations"   # PF time column name
+
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -98,19 +91,17 @@ def _first_rising_after_min(y: np.ndarray, t: np.ndarray, i_min: int,
     return None
 
 def _moving_avg(y: np.ndarray, win_samp: int) -> np.ndarray:
-    """
-    Same-length moving average for any window parity.
-    """
     win = max(1, int(win_samp))
     if win == 1:
         return y.copy()
     ker = np.ones(win, dtype=float) / win
-    # total pad = win - 1 → ensures len(output) == len(y)
+    # total pad = win - 1  → ensures len(output) == len(y) for any parity of win
     left  = win // 2
     right = win - 1 - left
     ypad = np.pad(y, (left, right), mode="edge")
     out = np.convolve(ypad, ker, mode="valid")  # length == len(y)
     return out
+
 
 def _zero_cross_rate(sig: np.ndarray, t: np.ndarray, amp_eps: float = 3e-4) -> float:
     # count sign changes where amplitude is meaningful
@@ -203,28 +194,17 @@ def _build_ideal(time: np.ndarray,
 
     return ideal
 
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def evaluate_voltage_control(
-    busbar: str,
-    csv_path_part,
-    *,
-    core_window_s: float = 20.0,     # 20 s "legacy" window for base score
-    long_tail_osc_s: float = 20.0,   # analyze last N s of full run for oscillations
-    long_tail_drift_s: float = 40.0, # analyze last N s of full run for drift/bias
-) -> float:
+def evaluate_voltage_control(busbar: str, csv_path_part) -> float:
     """
     Read '<csv_path_part>/<busbar>.csv', detect drop/hold/recovery,
     create an ideal trace using envelope-aware rules, export the ideal CSV
-    next to the sim for debugging, and return a fitness score.
-
-    The score has two parts:
-      1) Base score on a fixed-length "core" window (~20 s) around the event
-         → comparable to your original 20 s runs (MAE + overshoot).
-      2) Long-run stability add-on computed on the tail of the full simulation
-         → multiplicative penalty for sustained oscillations and drift.
+    next to the sim for debugging, and return a fitness score (MAE with
+    penalties for overshoot, sustained oscillations, and steady-state drift).
     """
     csv_root  = Path(csv_path_part)
     scenario  = _infer_scenario(csv_root)
@@ -242,11 +222,12 @@ def evaluate_voltage_control(
         print("⚠️ Not enough points or column mismatch")
         return float("inf")
 
-    dt    = float(np.median(np.diff(time)))
+    dt = float(np.median(np.diff(time)))
     T_end = float(time[-1])
 
-    # pre-drop baseline and late-time baseline (medians are robust)
-    V_pre  = float(np.median(v[time < (time[0] + max(0.1, 5*dt))]))
+    # pre-drop baseline and late-time baseline
+    # (use robust medians to ignore spikes)
+    V_pre = float(np.median(v[time < (time[0] + max(0.1, 5*dt))]))
     V_late = float(np.median(v[int(len(v)*0.5):]))
 
     # detect drop point
@@ -262,7 +243,7 @@ def evaluate_voltage_control(
     min_v   = float(v[min_idx])
     min_t   = float(time[min_idx])
 
-    # steady-state timing (from min onwards) vs late baseline
+    # steady-state timing (from min onwards)
     v_after_min = pd.Series(v[min_idx:])
     ss_rel = detect_steady_state(v_after_min, V_late)
     steady_idx = (min_idx + int(ss_rel)) if ss_rel is not None else None
@@ -317,104 +298,72 @@ def evaluate_voltage_control(
     except Exception as e:
         print(f"⚠️ ideal export failed: {e}")
 
-    # =========================
-    # 1) CORE (≈20 s) SCORING
-    # =========================
-    # start slightly before the drop
-    t_start    = max(time[0], drop_t - 2*dt)
-    t_end_core = min(T_end, t_start + max(5.0, core_window_s))
-    core_mask  = (time >= t_start) & (time <= t_end_core)
-    if not np.any(core_mask):
-        core_mask = slice(None)
+    # ----- core MAE on a sensible window (from pre-drop to a bit past settle)
+    t_start = max(time[0], drop_t - 2*dt)
+    t_end   = (steady_t + 1.0) if steady_t is not None else T_end
+    mask    = (time >= t_start) & (time <= t_end)
+    if not np.any(mask):
+        mask = slice(None)
 
-    mae_voltage  = float(np.mean(np.abs(v[core_mask] - ideal[core_mask])))
+    mae_voltage  = float(np.mean(np.abs(v[mask] - ideal[mask])))
 
-    # overshoot within the core window
-    vmax_core    = float(np.max(v[core_mask]))
-    overshoot_pu = max(0.0, (vmax_core - V_pre) / max(1e-6, V_pre))
-    mult_core = 1.0
+    # ----- overshoot multiplicative penalty (same as before)
+    vmax_after   = float(np.max(v[min_idx:])) if min_idx < len(v) else float(np.max(v))
+    overshoot_pu = max(0.0, (vmax_after - final_v_target) / max(1e-6, final_v_target))
+    mult = 1.0
     if mae_voltage <= 8.5e-4 and overshoot_pu > 0:
-        mult_core *= (1.0 + overshoot_pu)
+        mult *= (1.0 + overshoot_pu)
 
-    # optional oscillation & drift penalties *within* the core window tail
-    # (kept for continuity with previous behaviour)
-    t_tail_core = max(t_start, t_end_core - _OSC["eval_tail_s"])
-    core_tail_mask = time >= t_tail_core
-    if np.sum(core_tail_mask) >= 5:
-        win = int(max(1, _OSC["ma_win_s"] / max(dt, 1e-6)))
-        baseline_core = _moving_avg(v, win)
-        residual_core = v - baseline_core
-        r_tail = residual_core[core_tail_mask]
-        t_tail = time[core_tail_mask]
-        rms_c  = float(np.sqrt(np.mean(r_tail**2)))
-        zc_c   = float(_zero_cross_rate(r_tail, t_tail))
-        rms_excess_c = max(0.0, (rms_c - _OSC["rms_ok"]) / max(_OSC["rms_ok"], 1e-9))
-        zc_excess_c  = max(0.0, (zc_c  - _OSC["zc_per_s_ok"]) / max(_OSC["zc_per_s_ok"], 1e-9))
-        osc_pen_core = _OSC["k_rms"]*rms_excess_c + _OSC["k_zc"]*zc_excess_c
-        mult_core *= (1.0 + osc_pen_core)
-
-    # small drift check in the core window end (as before)
-    t_drift_core = max(t_start, t_end_core - _DRIFT["tail_s"])
-    drift_core_mask = time >= t_drift_core
-    slope_c = 0.0; bias_c = 0.0
-    if np.sum(drift_core_mask) >= 5:
-        y_c = _moving_avg(v, int(max(1, 0.5/dt)))
-        p_c = np.polyfit(time[drift_core_mask], y_c[drift_core_mask], 1)
-        slope_c = float(p_c[0])
-        mean_late_c = float(np.mean(y_c[drift_core_mask]))
-        bias_c  = float(V_pre - mean_late_c)
-        slope_exc_c = max(0.0, -(slope_c) - _DRIFT["slope_ok"]) / max(_DRIFT["slope_ok"], 1e-9)
-        bias_exc_c  = max(0.0, (bias_c - _DRIFT["bias_ok"])) / max(_DRIFT["bias_ok"], 1e-9)
-        drift_pen_c = _DRIFT["k_slope"]*slope_exc_c + _DRIFT["k_bias"]*bias_exc_c
-        mult_core *= (1.0 + drift_pen_c)
-
-    base_score = mae_voltage * mult_core
-
-    # ========================================
-    # 2) LONG-RUN (full trace) STABILITY ADD-ON
-    # ========================================
-    long_mult = 1.0
-
-    # Oscillation on the very tail (e.g., last 20 s of full run)
-    t_tail_osc = max(t_end_core, T_end - long_tail_osc_s)
-    m_osc = time >= t_tail_osc
-    if np.sum(m_osc) >= 5:
+    # ----- NEW: oscillation penalty (RMS + zero-cross rate on tail)
+    # choose analysis window at the tail (last eval_tail_s seconds)
+    t_tail_start = max(t_end, T_end - _OSC["eval_tail_s"])
+    tail_mask = time >= t_tail_start
+    if np.sum(tail_mask) >= 5:
         win = int(max(1, _OSC["ma_win_s"] / max(dt, 1e-6)))
         baseline = _moving_avg(v, win)
-        residual = v - baseline
-        r_tail = residual[m_osc]
-        t_tail = time[m_osc]
-        rms = float(np.sqrt(np.mean(r_tail**2)))
-        zc  = float(_zero_cross_rate(r_tail, t_tail))
-        rms_ex = max(0.0, (rms - _OSC["rms_ok"]) / max(_OSC["rms_ok"], 1e-9))
-        zc_ex  = max(0.0, (zc  - _OSC["zc_per_s_ok"]) / max(_OSC["zc_per_s_ok"], 1e-9))
-        osc_pen_long = _LONG["k_rms"]*rms_ex + _LONG["k_zc"]*zc_ex
-        long_mult *= (1.0 + osc_pen_long)
+        resid = v - baseline
+        resid_tail = resid[tail_mask]
+        time_tail  = time[tail_mask]
+        rms = float(np.sqrt(np.mean(resid_tail**2)))
+        zc_rate = float(_zero_cross_rate(resid_tail, time_tail))
 
-    # Drift/bias on a longer tail (e.g., last 40 s of full run)
-    t_tail_drift = max(t_end_core, T_end - long_tail_drift_s)
-    m_drift = time >= t_tail_drift
-    if np.sum(m_drift) >= 5:
-        y = _moving_avg(v, int(max(1, 0.5/dt)))
-        p = np.polyfit(time[m_drift], y[m_drift], 1)
-        slope = float(p[0])
-        mean_late = float(np.mean(y[m_drift]))
-        bias = float(V_pre - mean_late)
-        slope_ex = max(0.0, -(slope) - _DRIFT["slope_ok"]) / max(_DRIFT["slope_ok"], 1e-9)
-        bias_ex  = max(0.0, (bias - _DRIFT["bias_ok"])) / max(_DRIFT["bias_ok"], 1e-9)
-        drift_pen_long = _LONG["k_slope"]*slope_ex + _LONG["k_bias"]*bias_ex
-        long_mult *= (1.0 + drift_pen_long)
+        rms_excess = max(0.0, (rms - _OSC["rms_ok"]) / max(_OSC["rms_ok"], 1e-9))
+        zc_excess  = max(0.0, (zc_rate - _OSC["zc_per_s_ok"]) / max(_OSC["zc_per_s_ok"], 1e-9))
+        osc_pen = _OSC["k_rms"] * rms_excess + _OSC["k_zc"] * zc_excess
+        mult *= (1.0 + osc_pen)
+    else:
+        rms = 0.0; zc_rate = 0.0
 
-    fitness_value = base_score * long_mult
+    # ----- NEW: steady-state bias & drift penalties (late segment)
+    t_drift_start = max(t_end, T_end - _DRIFT["tail_s"])
+    drift_mask = time >= t_drift_start
+    if np.sum(drift_mask) >= 5:
+        y = _moving_avg(v, int(max(1, 0.5/dt)))  # re-use smoothed baseline
+        # linear trend
+        p = np.polyfit(time[drift_mask], y[drift_mask], 1)
+        slope = float(p[0])  # p.u. per second
+        # late bias vs V_pre (prefer returning close to pre-drop)
+        mean_late = float(np.mean(y[drift_mask]))
+        bias = float(V_pre - mean_late)  # positive if controller drags down
+        slope_excess = max(0.0, -(slope) - _DRIFT["slope_ok"]) / max(_DRIFT["slope_ok"], 1e-9)
+        bias_excess  = max(0.0, (bias - _DRIFT["bias_ok"])) / max(_DRIFT["bias_ok"], 1e-9)
+        drift_pen = _DRIFT["k_slope"] * slope_excess + _DRIFT["k_bias"] * bias_excess
+        mult *= (1.0 + drift_pen)
+    else:
+        slope = 0.0; bias = 0.0
+
+    fitness_value = mae_voltage * mult
 
     # debug summary
     print(f"Scenario: {scenario}")
     print(f"V_pre={V_pre:.4f}, drop t={drop_t:.3f}s, Vmin={min_v:.4f} @ {min_t:.3f}s")
-    print(f"Core window [{t_start:.1f}–{t_end_core:.1f}] s  "
-          f"→ MAE={mae_voltage:.6g}, base_mult={mult_core:.3f}, base_score={base_score:.6g}")
-    print(f"Long-run tails: osc≥{t_tail_osc:.1f}s, drift≥{t_tail_drift:.1f}s  "
-          f"→ long_mult={long_mult:.3f}")
-    print(f"⇒ Fitness={fitness_value:.6g}")
+    if steady_t is not None:
+        print(f"Steady t={steady_t:.3f}s; hold≈{hold_len:.3f}s; in_envelope={in_envelope}")
+    else:
+        print(f"Steady not detected; hold≈{hold_len:.3f}s; in_envelope={in_envelope}")
+    print(f"MAE={mae_voltage:.6g}  overshoot={overshoot_pu:.4g}  "
+          f"rms_tail={rms:.4g}  zc/s={zc_rate:.3g}  slope={slope:.3g}  bias={bias:.4g}  "
+          f"⇒ Fitness={fitness_value:.6g}")
 
     return float(fitness_value)
 

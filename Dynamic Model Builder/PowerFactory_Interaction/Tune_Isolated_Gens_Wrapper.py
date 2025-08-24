@@ -23,7 +23,7 @@ from Machine_Learning.ML_PSO_AVR import TUNED_TAGS  # to label best-vector CSV
 # ---------------------------------------------------------------------------
 # static configuration
 # ---------------------------------------------------------------------------
-_MAX_ITER = 60  # allow more iterations; plateau logic will stop earlier
+_MAX_ITER = 1000  # allow more iterations; plateau logic will stop earlier
 
 _SCEN = {
     "fast_dip": {
@@ -233,7 +233,7 @@ def _eval_candidate(pf_data,
 # MAIN entry
 # ---------------------------------------------------------------------------
 def tune_selected_generators(pf_data,
-                             target_score: float = 0.0095,
+                             target_score: float = 0.00095,
                              max_iter: int   = _MAX_ITER,
                              dry_run:   bool = False):
 

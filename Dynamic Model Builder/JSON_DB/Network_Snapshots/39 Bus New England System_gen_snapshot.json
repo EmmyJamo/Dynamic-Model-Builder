@@ -70,19 +70,19 @@
       "Trf_Name": "Trf 25 - 37",
       "Grid_Bus": "Bus 25",
       "AVR_Params": {
-        "Tr": 0.02,
-        "Ka": 10.0,
-        "Ta": 0.2,
-        "Ke": 7.066376632269748,
-        "Te": 1.5,
-        "Kf": 0.0014241624174930398,
-        "Tf": 1.0,
+        "Tr": 0.0,
+        "Ka": 5.0,
+        "Ta": 0.02,
+        "Ke": -0.047,
+        "Te": 0.528,
+        "Kf": 0.0854,
+        "Tf": 1.26,
         "E1": 3.191489,
         "Se1": 0.072,
         "E2": 4.255319,
         "Se2": 0.282,
-        "Vrmax": 11.528467504868278,
-        "Vrmin": -4.206081812140792
+        "Vrmax": 1.0,
+        "Vrmin": -1.0
       },
       "Machine_Const": {
         "Xd": 2.0299999713897705,
@@ -108,46 +108,46 @@
       "VQ_score": 1238.571126663262,
       "selected_for_tuning": true,
       "AVR_Seed": {
-        "Ka": 9.084844209288658,
+        "Ka": 5.829071303980124,
         "Ta": 0.2,
         "Tr": 0.02,
-        "Ke": 7.066376632269748,
-        "Te": 1.5,
-        "Kf": 0.08,
+        "Ke": -0.047,
+        "Te": 1.0861084539041006,
+        "Kf": 0.0011658142607960248,
         "Tf": 1.0,
-        "Vrmax": 11.528467504868278,
-        "Vrmin": -4.206081812140792,
+        "Vrmax": 1.0,
+        "Vrmin": -1.0,
         "note": "auto\u2011seed v1 (dual\u2011scenario)"
       },
       "AVR_Final": {
-        "Tr": 0.02,
-        "Ka": 10.0,
-        "Ta": 0.2,
-        "Vrmax": 11.528467504868278,
-        "Vrmin": -4.206081812140792,
-        "Ke": 7.066376632269748,
-        "Te": 1.5,
-        "Kf": 0.08,
-        "Tf": 1.0,
+        "Tr": 0.006353795803657183,
+        "Ka": 261.60177023249366,
+        "Ta": 0.3441934057846029,
+        "Vrmax": 8.808631875538476,
+        "Vrmin": -16.434584168010787,
+        "Ke": 4.657330373002987,
+        "Te": 1.3003903395110543,
+        "Kf": 0.04100532662568021,
+        "Tf": 3.6225168391124134,
         "E1": 3.191489,
         "E2": 4.255319,
         "Se1": 0.072,
         "Se2": 0.282
       },
       "AVR_FinalVec": {
-        "Ka": 10.0,
-        "Ta": 0.2,
-        "Tr": 0.02,
-        "Ke": 7.066376632269748,
-        "Te": 1.5,
-        "Kf": 0.08,
-        "Tf": 1.0,
-        "Vrmax": 11.528467504868278,
-        "Vrmin": -4.206081812140792
+        "Ka": 261.60177023249366,
+        "Ta": 0.3441934057846029,
+        "Tr": 0.006353795803657183,
+        "Ke": 4.657330373002987,
+        "Te": 1.3003903395110543,
+        "Kf": 0.04100532662568021,
+        "Tf": 3.6225168391124134,
+        "Vrmax": 8.808631875538476,
+        "Vrmin": -16.434584168010787
       },
-      "final_score": 0.011109510611337156,
-      "tuned_iter": 1,
-      "tuning_ts": "2025-08-13T19:04:08"
+      "final_score": 0.0029219282912296457,
+      "tuned_iter": 869,
+      "tuning_ts": "2025-08-24T14:09:10"
     },
     {
       "name": "G 01",
@@ -205,19 +205,19 @@
       "Trf_Name": "Trf 06 - 31",
       "Grid_Bus": "Bus 06",
       "AVR_Params": {
-        "Tr": 0.02,
-        "Ka": 10.0,
-        "Ta": 0.2,
-        "Ke": 1.0,
-        "Te": 1.4308559709059874,
-        "Kf": 0.0013482621407687385,
-        "Tf": 1.0,
+        "Tr": 0.0,
+        "Ka": 6.2,
+        "Ta": 0.05,
+        "Ke": -0.633,
+        "Te": 0.405,
+        "Kf": 0.057,
+        "Tf": 0.5,
         "E1": 3.036437,
         "Se1": 0.66,
         "E2": 4.048583,
         "Se2": 0.88,
-        "Vrmax": 10.5,
-        "Vrmin": -10.5
+        "Vrmax": 1.0,
+        "Vrmin": -1.0
       },
       "Machine_Const": {
         "Xd": 2.065000057220459,
@@ -313,19 +313,19 @@
       "Trf_Name": "Trf 19 - 33",
       "Grid_Bus": "Bus 19",
       "AVR_Params": {
-        "Tr": 0.001,
-        "Ka": 10.039717230945978,
-        "Ta": 0.0662278663824039,
-        "Ke": 6.567034002999011,
-        "Te": 1.321166894947509,
-        "Kf": 0.1650885096085306,
-        "Tf": 1.0156671426536328,
+        "Tr": 0.0,
+        "Ka": 5.0,
+        "Ta": 0.06,
+        "Ke": -0.0525,
+        "Te": 0.5,
+        "Kf": 0.08,
+        "Tf": 1.0,
         "E1": 2.868069,
         "Se1": 0.08,
         "E2": 3.824092,
         "Se2": 0.314,
-        "Vrmax": 12.887957367884965,
-        "Vrmin": -3.546170645606912
+        "Vrmax": 1.0,
+        "Vrmin": -1.0
       },
       "Machine_Const": {
         "Xd": 2.0959999561309814,
@@ -351,46 +351,46 @@
       "VQ_score": 1181.6426324839954,
       "selected_for_tuning": true,
       "AVR_Seed": {
-        "Ka": 7.784435117838085,
+        "Ka": 5.955502613840373,
         "Ta": 0.2,
         "Tr": 0.02,
-        "Ke": 6.567034002999011,
-        "Te": 1.5,
-        "Kf": 0.0015568870235676171,
+        "Ke": -0.0525,
+        "Te": 1.1465922982885102,
+        "Kf": 0.0011911005227680748,
         "Tf": 1.0,
-        "Vrmax": 12.887957367884965,
-        "Vrmin": -3.546170645606912,
+        "Vrmax": 1.0,
+        "Vrmin": -1.0,
         "note": "auto\u2011seed v1 (dual\u2011scenario)"
       },
       "AVR_Final": {
-        "Tr": 0.011148228901862983,
-        "Ka": 10.0,
-        "Ta": 0.001,
-        "Vrmax": 12.944391245253444,
-        "Vrmin": -3.7199475735374397,
-        "Ke": 6.639288930519585,
-        "Te": 1.3058021528045995,
-        "Kf": 0.0,
-        "Tf": 1.2916920470705096,
+        "Tr": 0.1217203267853809,
+        "Ka": 304.95165405121975,
+        "Ta": 0.28104160711826826,
+        "Vrmax": 10.991104748282206,
+        "Vrmin": -17.126664190681403,
+        "Ke": 5.284116545774091,
+        "Te": 2.8980459709407365,
+        "Kf": 4.5599340054410895,
+        "Tf": 4.4791064088869845,
         "E1": 2.868069,
         "E2": 3.824092,
         "Se1": 0.08,
         "Se2": 0.314
       },
       "AVR_FinalVec": {
-        "Ka": 10.0,
-        "Ta": 0.001,
-        "Tr": 0.011148228901862983,
-        "Ke": 6.639288930519585,
-        "Te": 1.3058021528045995,
-        "Kf": 0.0,
-        "Tf": 1.2916920470705096,
-        "Vrmax": 12.944391245253444,
-        "Vrmin": -3.7199475735374397
+        "Ka": 304.95165405121975,
+        "Ta": 0.28104160711826826,
+        "Tr": 0.1217203267853809,
+        "Ke": 5.284116545774091,
+        "Te": 2.8980459709407365,
+        "Kf": 4.5599340054410895,
+        "Tf": 4.4791064088869845,
+        "Vrmax": 10.991104748282206,
+        "Vrmin": -17.126664190681403
       },
-      "final_score": 0.009425397959772387,
-      "tuned_iter": 41,
-      "tuning_ts": "2025-08-13T19:04:27"
+      "final_score": 0.0029986203237029685,
+      "tuned_iter": 147,
+      "tuning_ts": "2025-08-24T14:10:33"
     },
     {
       "name": "G 05",
@@ -516,19 +516,19 @@
       "Trf_Name": "Trf 29 - 38",
       "Grid_Bus": "Bus 29",
       "AVR_Params": {
-        "Tr": 0.001,
-        "Ka": 192.65768164432325,
-        "Ta": 0.001,
-        "Ke": 3.7848346783424494,
-        "Te": 0.01,
-        "Kf": 4.059088547267162,
-        "Tf": 3.069358562532541,
+        "Tr": 0.0,
+        "Ka": 40.0,
+        "Ta": 0.02,
+        "Ke": 1.0,
+        "Te": 1.4,
+        "Kf": 0.03,
+        "Tf": 1.0,
         "E1": 4.256757,
         "Se1": 0.62,
         "E2": 5.675676,
         "Se2": 0.85,
-        "Vrmax": 8.084607616791462,
-        "Vrmin": -14.631309468450977
+        "Vrmax": 10.5,
+        "Vrmin": -10.5
       },
       "Machine_Const": {
         "Xd": 2.1059999465942383,
@@ -554,46 +554,46 @@
       "VQ_score": 1747.2697478412538,
       "selected_for_tuning": true,
       "AVR_Seed": {
-        "Ka": 13.0,
+        "Ka": 5.93084107972828,
         "Ta": 0.2,
         "Tr": 0.02,
-        "Ke": 3.7848346783424494,
-        "Te": 1.5,
-        "Kf": 0.0026,
+        "Ke": 1.0,
+        "Te": 1.1352040621831185,
+        "Kf": 0.001186168215945656,
         "Tf": 1.0,
-        "Vrmax": 8.084607616791462,
-        "Vrmin": -14.631309468450977,
+        "Vrmax": 10.5,
+        "Vrmin": -10.5,
         "note": "auto\u2011seed v1 (dual\u2011scenario)"
       },
       "AVR_Final": {
-        "Tr": 0.02,
-        "Ka": 13.0,
-        "Ta": 0.2,
-        "Vrmax": 8.084607616791462,
-        "Vrmin": -14.631309468450977,
-        "Ke": 3.7848346783424494,
-        "Te": 1.5,
-        "Kf": 0.0026,
-        "Tf": 1.0,
+        "Tr": 0.1504102326575445,
+        "Ka": 106.40731387682928,
+        "Ta": 0.05521170036159022,
+        "Vrmax": 18.67604707226058,
+        "Vrmin": -2.6503292933112927,
+        "Ke": 7.471188824933146,
+        "Te": 2.8713132033661517,
+        "Kf": 0.010050482651599774,
+        "Tf": 2.4548872425039057,
         "E1": 4.256757,
         "E2": 5.675676,
         "Se1": 0.62,
         "Se2": 0.85
       },
       "AVR_FinalVec": {
-        "Ka": 13.0,
-        "Ta": 0.2,
-        "Tr": 0.02,
-        "Ke": 3.7848346783424494,
-        "Te": 1.5,
-        "Kf": 0.0026,
-        "Tf": 1.0,
-        "Vrmax": 8.084607616791462,
-        "Vrmin": -14.631309468450977
+        "Ka": 106.40731387682928,
+        "Ta": 0.05521170036159022,
+        "Tr": 0.1504102326575445,
+        "Ke": 7.471188824933146,
+        "Te": 2.8713132033661517,
+        "Kf": 0.010050482651599774,
+        "Tf": 2.4548872425039057,
+        "Vrmax": 18.67604707226058,
+        "Vrmin": -2.6503292933112927
       },
-      "final_score": 0.014109197460662477,
-      "tuned_iter": 1,
-      "tuning_ts": "2025-08-13T19:04:55"
+      "final_score": 0.0034228222685369378,
+      "tuned_iter": 182,
+      "tuning_ts": "2025-08-24T14:12:35"
     },
     {
       "name": "G 07",
@@ -665,11 +665,11 @@
       "Skss_MVA": 6804.655535630511,
       "Ikss_kA": 11.387448420982471,
       "ip_A": 29.793610232800035,
-      "fitness_fast_dip": 0.018860714245850754,
-      "fitness_slow_hold": 0.019630998313923963,
-      "original network fitness_value": 0.018860714245850754,
-      "fitness_fast_dip_final": 0.018860714245850754,
-      "fitness_slow_hold_final": 0.019631365234867047
+      "fitness_fast_dip": 0.003457227409006448,
+      "fitness_slow_hold": 0.013139906512043725,
+      "original network fitness_value": 0.003457227409006448,
+      "fitness_fast_dip_final": 0.003457227409006448,
+      "fitness_slow_hold_final": 0.013144626598701047
     },
     {
       "name": "Bus 07",
@@ -685,11 +685,11 @@
       "Skss_MVA": 6572.638768960469,
       "Ikss_kA": 10.999173224769557,
       "ip_A": 28.763796122493034,
-      "fitness_fast_dip": 0.0195377952341216,
-      "fitness_slow_hold": 0.019904868570358978,
-      "original network fitness_value": 0.0195377952341216,
-      "fitness_fast_dip_final": 0.0195377952341216,
-      "fitness_slow_hold_final": 0.019905170567548515
+      "fitness_fast_dip": 0.0030156281942684405,
+      "fitness_slow_hold": 0.012915732127689334,
+      "original network fitness_value": 0.0030156281942684405,
+      "fitness_fast_dip_final": 0.0030156281942684405,
+      "fitness_slow_hold_final": 0.012920448425327854
     },
     {
       "name": "Bus 05",
@@ -705,11 +705,11 @@
       "Skss_MVA": 8170.736995707422,
       "Ikss_kA": 13.673557112896562,
       "ip_A": 35.914425904112086,
-      "fitness_fast_dip": 0.01943571591447554,
-      "fitness_slow_hold": 0.021404675738354674,
-      "original network fitness_value": 0.01943571591447554,
-      "fitness_fast_dip_final": 0.01943571591447554,
-      "fitness_slow_hold_final": 0.021405233516923663
+      "fitness_fast_dip": 0.00425223984835093,
+      "fitness_slow_hold": 0.013668483893176575,
+      "original network fitness_value": 0.00425223984835093,
+      "fitness_fast_dip_final": 0.00425223984835093,
+      "fitness_slow_hold_final": 0.013671880214908255
     },
     {
       "name": "Bus 04",
@@ -725,11 +725,11 @@
       "Skss_MVA": 7785.376853602511,
       "Ikss_kA": 13.028664991797365,
       "ip_A": 33.98838915483951,
-      "fitness_fast_dip": 0.02272761097332632,
-      "fitness_slow_hold": 0.021964379475871643,
-      "original network fitness_value": 0.02272761097332632,
-      "fitness_fast_dip_final": 0.02272761097332632,
-      "fitness_slow_hold_final": 0.02197323523353605
+      "fitness_fast_dip": 0.0037977462214197517,
+      "fitness_slow_hold": 0.012896854283975634,
+      "original network fitness_value": 0.0037977462214197517,
+      "fitness_fast_dip_final": 0.0037977462214197517,
+      "fitness_slow_hold_final": 0.012901272858259365
     },
     {
       "name": "Bus 06",
@@ -745,11 +745,11 @@
       "Skss_MVA": 8519.748603116823,
       "Ikss_kA": 14.25762072300706,
       "ip_A": 37.544245988512536,
-      "fitness_fast_dip": 0.01895863939925029,
-      "fitness_slow_hold": 0.02185505779590826,
-      "original network fitness_value": 0.01895863939925029,
-      "fitness_fast_dip_final": 0.01895863939925029,
-      "fitness_slow_hold_final": 0.021855757249260088
+      "fitness_fast_dip": 0.0056134280999963915,
+      "fitness_slow_hold": 0.01486586173484244,
+      "original network fitness_value": 0.0056134280999963915,
+      "fitness_fast_dip_final": 0.0056134280999963915,
+      "fitness_slow_hold_final": 0.01486825612958028
     },
     {
       "name": "Bus 31",
@@ -783,11 +783,11 @@
       "Skss_MVA": 7680.524732352031,
       "Ikss_kA": 12.853197164466733,
       "ip_A": 33.619596176466345,
-      "fitness_fast_dip": 0.02071098961618756,
-      "fitness_slow_hold": 0.02304653888755713,
-      "original network fitness_value": 0.02071098961618756,
-      "fitness_fast_dip_final": 0.02071098961618756,
-      "fitness_slow_hold_final": 0.02304666879569219
+      "fitness_fast_dip": 0.008163821854026612,
+      "fitness_slow_hold": 0.01709923268661351,
+      "original network fitness_value": 0.008163821854026612,
+      "fitness_fast_dip_final": 0.008163821854026612,
+      "fitness_slow_hold_final": 0.01710042365929752
     },
     {
       "name": "Bus 12",
@@ -803,11 +803,11 @@
       "Skss_MVA": 3226.149887236922,
       "Ikss_kA": 13.497235549582014,
       "ip_A": 35.900714132308465,
-      "fitness_fast_dip": 0.02758133357512266,
-      "fitness_slow_hold": 0.023770874857312642,
-      "original network fitness_value": 0.02758133357512266,
-      "fitness_fast_dip_final": 0.02758133357512266,
-      "fitness_slow_hold_final": 0.02379168873737305
+      "fitness_fast_dip": 0.001987815623300347,
+      "fitness_slow_hold": 0.012133956312800264,
+      "original network fitness_value": 0.001987815623300347,
+      "fitness_fast_dip_final": 0.001987815623300347,
+      "fitness_slow_hold_final": 0.01214012087008658
     },
     {
       "name": "Bus 10",
@@ -823,11 +823,11 @@
       "Skss_MVA": 7965.90895447753,
       "Ikss_kA": 13.33078167886276,
       "ip_A": 34.966395693508474,
-      "fitness_fast_dip": 0.020913831505816476,
-      "fitness_slow_hold": 0.02393034594951822,
-      "original network fitness_value": 0.020913831505816476,
-      "fitness_fast_dip_final": 0.020913831505816476,
-      "fitness_slow_hold_final": 0.023930693988318708
+      "fitness_fast_dip": 0.010205770974706223,
+      "fitness_slow_hold": 0.018991378116537717,
+      "original network fitness_value": 0.010205770974706223,
+      "fitness_fast_dip_final": 0.010205770974706223,
+      "fitness_slow_hold_final": 0.01899120438121477
     },
     {
       "name": "Bus 32",
@@ -861,11 +861,11 @@
       "Skss_MVA": 7359.595834940658,
       "Ikss_kA": 12.31612938095605,
       "ip_A": 32.077664544664245,
-      "fitness_fast_dip": 0.022088532204878455,
-      "fitness_slow_hold": 0.023489995608863237,
-      "original network fitness_value": 0.022088532204878455,
-      "fitness_fast_dip_final": 0.022088532204878455,
-      "fitness_slow_hold_final": 0.023490483876214097
+      "fitness_fast_dip": 0.008693320536525233,
+      "fitness_slow_hold": 0.017402012585364862,
+      "original network fitness_value": 0.008693320536525233,
+      "fitness_fast_dip_final": 0.008693320536525233,
+      "fitness_slow_hold_final": 0.01740331955210544
     },
     {
       "name": "Bus 14",
@@ -881,11 +881,11 @@
       "Skss_MVA": 7548.334730763039,
       "Ikss_kA": 12.631979967360701,
       "ip_A": 32.77914241788238,
-      "fitness_fast_dip": 0.0234329343283299,
-      "fitness_slow_hold": 0.023340714715705407,
-      "original network fitness_value": 0.0234329343283299,
-      "fitness_fast_dip_final": 0.0234329343283299,
-      "fitness_slow_hold_final": 0.023343199021884066
+      "fitness_fast_dip": 0.007648916627647792,
+      "fitness_slow_hold": 0.016014074840725243,
+      "original network fitness_value": 0.007648916627647792,
+      "fitness_fast_dip_final": 0.007648916627647792,
+      "fitness_slow_hold_final": 0.01601666039774786
     },
     {
       "name": "Bus 15",
@@ -901,11 +901,11 @@
       "Skss_MVA": 7072.8324939255635,
       "Ikss_kA": 11.836236940003062,
       "ip_A": 30.311513466561838,
-      "fitness_fast_dip": 0.02770764271700634,
-      "fitness_slow_hold": 0.02471882956266718,
-      "original network fitness_value": 0.02770764271700634,
-      "fitness_fast_dip_final": 0.02770764271700634,
-      "fitness_slow_hold_final": 0.02473218575260707
+      "fitness_fast_dip": 0.008946528461694707,
+      "fitness_slow_hold": 0.016438144697464307,
+      "original network fitness_value": 0.008946528461694707,
+      "fitness_fast_dip_final": 0.008946528461694707,
+      "fitness_slow_hold_final": 0.016440794854958085
     },
     {
       "name": "Bus 20",
@@ -921,11 +921,11 @@
       "Skss_MVA": 5717.646119587436,
       "Ikss_kA": 14.352541418586199,
       "ip_A": 37.60799484073346,
-      "fitness_fast_dip": 0.020669299098532355,
-      "fitness_slow_hold": 0.0188078663258305,
-      "original network fitness_value": 0.020669299098532355,
-      "fitness_fast_dip_final": 0.020669299098532355,
-      "fitness_slow_hold_final": 0.018823229434549654
+      "fitness_fast_dip": 0.004766914055297137,
+      "fitness_slow_hold": 0.012716516630620676,
+      "original network fitness_value": 0.004766914055297137,
+      "fitness_fast_dip_final": 0.004766914055297137,
+      "fitness_slow_hold_final": 0.01271860326567032
     },
     {
       "name": "Bus 19",
@@ -941,11 +941,11 @@
       "Skss_MVA": 7942.405959237996,
       "Ikss_kA": 13.291449908925637,
       "ip_A": 34.6056384838817,
-      "fitness_fast_dip": 0.026213829503955587,
-      "fitness_slow_hold": 0.028546583736675766,
-      "original network fitness_value": 0.026213829503955587,
-      "fitness_fast_dip_final": 0.02644730890305369,
-      "fitness_slow_hold_final": 0.02839136384639285
+      "fitness_fast_dip": 0.022906669025846177,
+      "fitness_slow_hold": 0.028086815888251154,
+      "original network fitness_value": 0.022906669025846177,
+      "fitness_fast_dip_final": 0.020639426280990577,
+      "fitness_slow_hold_final": 0.02757000587827739
     },
     {
       "name": "Bus 34",
@@ -1015,11 +1015,11 @@
       "Skss_MVA": 6892.418184483027,
       "Ikss_kA": 11.534317374431152,
       "ip_A": 30.462352441066937,
-      "fitness_fast_dip": 0.022936194465759122,
-      "fitness_slow_hold": 0.027531071873341657,
-      "original network fitness_value": 0.022936194465759122,
-      "fitness_fast_dip_final": 0.022993983554371152,
-      "fitness_slow_hold_final": 0.027532783381533334
+      "fitness_fast_dip": 0.020908067215003,
+      "fitness_slow_hold": 0.0256743676891119,
+      "original network fitness_value": 0.020908067215003,
+      "fitness_fast_dip_final": 0.02063850249736183,
+      "fitness_slow_hold_final": 0.025716636019256004
     },
     {
       "name": "Bus 22",
@@ -1035,11 +1035,11 @@
       "Skss_MVA": 7591.236629427918,
       "Ikss_kA": 12.703775395601031,
       "ip_A": 33.63529462007629,
-      "fitness_fast_dip": 0.023402745661703014,
-      "fitness_slow_hold": 0.028822274296561718,
-      "original network fitness_value": 0.023402745661703014,
-      "fitness_fast_dip_final": 0.023622329685023195,
-      "fitness_slow_hold_final": 0.02900630517431779
+      "fitness_fast_dip": 0.02159962625733367,
+      "fitness_slow_hold": 0.027025560885608358,
+      "original network fitness_value": 0.02159962625733367,
+      "fitness_fast_dip_final": 0.02133883214572481,
+      "fitness_slow_hold_final": 0.02709143866982568
     },
     {
       "name": "Bus 37",
@@ -1091,11 +1091,11 @@
       "Skss_MVA": 7318.397047579888,
       "Ikss_kA": 12.247184073787857,
       "ip_A": 31.946972425433003,
-      "fitness_fast_dip": 0.02818643112886041,
-      "fitness_slow_hold": 0.027329878708611127,
-      "original network fitness_value": 0.02818643112886041,
-      "fitness_fast_dip_final": 0.028437417748301358,
-      "fitness_slow_hold_final": 0.027342362869594312
+      "fitness_fast_dip": 0.019068825744770902,
+      "fitness_slow_hold": 0.024174883815403548,
+      "original network fitness_value": 0.019068825744770902,
+      "fitness_fast_dip_final": 0.018420884206874967,
+      "fitness_slow_hold_final": 0.024152500895297236
     },
     {
       "name": "Bus 21",
@@ -1111,11 +1111,11 @@
       "Skss_MVA": 6698.360909683003,
       "Ikss_kA": 11.209566592274633,
       "ip_A": 29.346531723342007,
-      "fitness_fast_dip": 0.02724030654204457,
-      "fitness_slow_hold": 0.02677931688130361,
-      "original network fitness_value": 0.02724030654204457,
-      "fitness_fast_dip_final": 0.027415640502775816,
-      "fitness_slow_hold_final": 0.02675416917987066
+      "fitness_fast_dip": 0.016178269052732085,
+      "fitness_slow_hold": 0.02205524506908988,
+      "original network fitness_value": 0.016178269052732085,
+      "fitness_fast_dip_final": 0.015663028173171865,
+      "fitness_slow_hold_final": 0.02202709278071851
     },
     {
       "name": "Bus 16",
@@ -1131,11 +1131,11 @@
       "Skss_MVA": 9981.840226881874,
       "Ikss_kA": 16.70440041158865,
       "ip_A": 43.342796915101644,
-      "fitness_fast_dip": 0.026399093522707726,
-      "fitness_slow_hold": 0.026022476384044278,
-      "original network fitness_value": 0.026399093522707726,
-      "fitness_fast_dip_final": 0.02645280166764221,
-      "fitness_slow_hold_final": 0.02594835301062788
+      "fitness_fast_dip": 0.01643071748802885,
+      "fitness_slow_hold": 0.022228599845966653,
+      "original network fitness_value": 0.01643071748802885,
+      "fitness_fast_dip_final": 0.015730068303956006,
+      "fitness_slow_hold_final": 0.022280133001554438
     },
     {
       "name": "Bus 17",
@@ -1151,11 +1151,11 @@
       "Skss_MVA": 8318.726743092448,
       "Ikss_kA": 13.92121485344743,
       "ip_A": 35.85341177878762,
-      "fitness_fast_dip": 0.03265870382942703,
-      "fitness_slow_hold": 0.028655792346461286,
-      "original network fitness_value": 0.03265870382942703,
-      "fitness_fast_dip_final": 0.03274888606766266,
-      "fitness_slow_hold_final": 0.028730668645328993
+      "fitness_fast_dip": 0.017779775288969926,
+      "fitness_slow_hold": 0.02296741802265908,
+      "original network fitness_value": 0.017779775288969926,
+      "fitness_fast_dip_final": 0.017266449451888467,
+      "fitness_slow_hold_final": 0.022964526603623584
     },
     {
       "name": "Bus 27",
@@ -1171,11 +1171,11 @@
       "Skss_MVA": 5569.639583505152,
       "Ikss_kA": 9.320675109640273,
       "ip_A": 23.698315294316025,
-      "fitness_fast_dip": 0.04479214525744713,
-      "fitness_slow_hold": 0.03781388130892395,
-      "original network fitness_value": 0.04479214525744713,
-      "fitness_fast_dip_final": 0.04513428106664928,
-      "fitness_slow_hold_final": 0.03788935872062187
+      "fitness_fast_dip": 0.019919097913828687,
+      "fitness_slow_hold": 0.024520122187842615,
+      "original network fitness_value": 0.019919097913828687,
+      "fitness_fast_dip_final": 0.019549551620976633,
+      "fitness_slow_hold_final": 0.024419042310847506
     },
     {
       "name": "Bus 18",
@@ -1191,11 +1191,11 @@
       "Skss_MVA": 7111.189481919164,
       "Ikss_kA": 11.900426555491201,
       "ip_A": 30.53135135742226,
-      "fitness_fast_dip": 0.03230399636895193,
-      "fitness_slow_hold": 0.02890802977584052,
-      "original network fitness_value": 0.03230399636895193,
-      "fitness_fast_dip_final": 0.03240817556254922,
-      "fitness_slow_hold_final": 0.02889499140479834
+      "fitness_fast_dip": 0.01650716427429974,
+      "fitness_slow_hold": 0.021920913330083405,
+      "original network fitness_value": 0.01650716427429974,
+      "fitness_fast_dip_final": 0.01608333606947495,
+      "fitness_slow_hold_final": 0.021864815765876573
     },
     {
       "name": "Bus 03",
@@ -1211,11 +1211,11 @@
       "Skss_MVA": 8209.45329489549,
       "Ikss_kA": 13.738348028137887,
       "ip_A": 35.242336951282475,
-      "fitness_fast_dip": 0.02822491048968539,
-      "fitness_slow_hold": 0.026557844278014876,
-      "original network fitness_value": 0.02822491048968539,
-      "fitness_fast_dip_final": 0.028260953723685426,
-      "fitness_slow_hold_final": 0.026578140253429885
+      "fitness_fast_dip": 0.015859183552871456,
+      "fitness_slow_hold": 0.021243793192777555,
+      "original network fitness_value": 0.015859183552871456,
+      "fitness_fast_dip_final": 0.015574698244633573,
+      "fitness_slow_hold_final": 0.021200064822141804
     },
     {
       "name": "Bus 26",
@@ -1231,11 +1231,11 @@
       "Skss_MVA": 5876.930021122733,
       "Ikss_kA": 9.83491921653276,
       "ip_A": 24.668833583368503,
-      "fitness_fast_dip": 0.017736730058605578,
-      "fitness_slow_hold": 0.04768545897984798,
-      "original network fitness_value": 0.017736730058605578,
-      "fitness_fast_dip_final": 0.017938520395226972,
-      "fitness_slow_hold_final": 0.04777512920109268
+      "fitness_fast_dip": 0.026371314073254538,
+      "fitness_slow_hold": 0.02942927252104506,
+      "original network fitness_value": 0.026371314073254538,
+      "fitness_fast_dip_final": 0.026129072693944193,
+      "fitness_slow_hold_final": 0.029350456460844734
     },
     {
       "name": "Bus 28",
@@ -1251,11 +1251,11 @@
       "Skss_MVA": 3844.491793826987,
       "Ikss_kA": 6.43367644076324,
       "ip_A": 16.349021373498545,
-      "fitness_fast_dip": 0.014316082412466876,
-      "fitness_slow_hold": 0.051546357548169726,
-      "original network fitness_value": 0.014316082412466876,
-      "fitness_fast_dip_final": 0.014402600836243177,
-      "fitness_slow_hold_final": 0.05125945680418208
+      "fitness_fast_dip": 0.024975187974810187,
+      "fitness_slow_hold": 0.028444591031227585,
+      "original network fitness_value": 0.024975187974810187,
+      "fitness_fast_dip_final": 0.024867302417588798,
+      "fitness_slow_hold_final": 0.0283853624442989
     },
     {
       "name": "Bus 25",
@@ -1271,11 +1271,11 @@
       "Skss_MVA": 7988.312025083243,
       "Ikss_kA": 13.368272747978361,
       "ip_A": 30.580518748155356,
-      "fitness_fast_dip": 0.033742692431886705,
-      "fitness_slow_hold": 0.032049577880305796,
-      "original network fitness_value": 0.033742692431886705,
-      "fitness_fast_dip_final": 0.03395350796607097,
-      "fitness_slow_hold_final": 0.03205250039302042
+      "fitness_fast_dip": 0.026289504978404474,
+      "fitness_slow_hold": 0.029310300417463048,
+      "original network fitness_value": 0.026289504978404474,
+      "fitness_fast_dip_final": 0.026397100908777192,
+      "fitness_slow_hold_final": 0.03075395576036043
     },
     {
       "name": "Bus 29",
@@ -1291,11 +1291,11 @@
       "Skss_MVA": 5092.0365277110195,
       "Ikss_kA": 8.521416405789461,
       "ip_A": 21.979226280166696,
-      "fitness_fast_dip": 0.011429232439913317,
-      "fitness_slow_hold": 0.06825329636164072,
-      "original network fitness_value": 0.011429232439913317,
-      "fitness_fast_dip_final": 0.011895462798215933,
-      "fitness_slow_hold_final": 0.06763775440416275
+      "fitness_fast_dip": 0.023556776906714566,
+      "fitness_slow_hold": 0.027472220722102907,
+      "original network fitness_value": 0.023556776906714566,
+      "fitness_fast_dip_final": 0.025445766903051736,
+      "fitness_slow_hold_final": 0.03263673075669235
     },
     {
       "name": "Bus 38",
@@ -1347,11 +1347,11 @@
       "Skss_MVA": 9906.822329428056,
       "Ikss_kA": 16.578859532490096,
       "ip_A": 41.54337002432632,
-      "fitness_fast_dip": 0.02809628878644867,
-      "fitness_slow_hold": 0.026293389305262028,
-      "original network fitness_value": 0.02809628878644867,
-      "fitness_fast_dip_final": 0.027676101259474707,
-      "fitness_slow_hold_final": 0.02664025962824372
+      "fitness_fast_dip": 0.022461762253944924,
+      "fitness_slow_hold": 0.02532672332165645,
+      "original network fitness_value": 0.022461762253944924,
+      "fitness_fast_dip_final": 0.022376435381228618,
+      "fitness_slow_hold_final": 0.02591402248614175
     },
     {
       "name": "Bus 01",
@@ -1367,11 +1367,11 @@
       "Skss_MVA": 6083.765105329116,
       "Ikss_kA": 10.181053394922367,
       "ip_A": 26.628979610612724,
-      "fitness_fast_dip": 0.022284807552925327,
-      "fitness_slow_hold": 0.034056251438215585,
-      "original network fitness_value": 0.022284807552925327,
-      "fitness_fast_dip_final": 0.021893179148323397,
-      "fitness_slow_hold_final": 0.03375595848552496
+      "fitness_fast_dip": 0.02738666663774513,
+      "fitness_slow_hold": 0.030648624679764123,
+      "original network fitness_value": 0.02738666663774513,
+      "fitness_fast_dip_final": 0.027334896023052477,
+      "fitness_slow_hold_final": 0.030627973505351326
     },
     {
       "name": "Bus 39",
@@ -1387,11 +1387,11 @@
       "Skss_MVA": 57782.37889430736,
       "Ikss_kA": 96.69760002621827,
       "ip_A": 254.6372332104072,
-      "fitness_fast_dip": 0.03821615012306961,
-      "fitness_slow_hold": 0.0500893039362584,
-      "original network fitness_value": 0.03821615012306961,
-      "fitness_fast_dip_final": 0.03747394336201012,
-      "fitness_slow_hold_final": 0.04906603139715991
+      "fitness_fast_dip": 0.02704222502348823,
+      "fitness_slow_hold": 0.03580424420416457,
+      "original network fitness_value": 0.02704222502348823,
+      "fitness_fast_dip_final": 0.027032714778610665,
+      "fitness_slow_hold_final": 0.03580214487619522
     },
     {
       "name": "Bus 09",
@@ -1407,19 +1407,19 @@
       "Skss_MVA": 5962.41876527586,
       "Ikss_kA": 9.97798283812549,
       "ip_A": 26.4050305623936,
-      "fitness_fast_dip": 0.017812154314743086,
-      "fitness_slow_hold": 0.030204692938638714,
-      "original network fitness_value": 0.017812154314743086,
-      "fitness_fast_dip_final": 0.017539772321887755,
-      "fitness_slow_hold_final": 0.0299076696145552
+      "fitness_fast_dip": 0.017157394094506277,
+      "fitness_slow_hold": 0.02314245908917164,
+      "original network fitness_value": 0.017157394094506277,
+      "fitness_fast_dip_final": 0.017099515034036516,
+      "fitness_slow_hold_final": 0.02310404079831707
     }
   ],
-  "Bus_Thevenin_update_ts": "2025-08-13T19:03:17",
-  "Bus_Voltage_update_ts": "2025-08-13T19:03:17",
-  "VQ_analysis_timestamp": "2025-08-13T19:03:40",
+  "Bus_Thevenin_update_ts": "2025-08-24T13:58:47",
+  "Bus_Voltage_update_ts": "2025-08-24T13:58:47",
+  "VQ_analysis_timestamp": "2025-08-24T13:59:33",
   "VQ_method": "ComVstab RMS \u00d7 head-room (AVR gens only)",
   "VQ_top_fraction": 0.3,
   "VQ_candidates": 9,
-  "Gen_Extended_ts": "2025-08-13T19:03:15",
-  "final_full_scores_ts": "2025-08-13T19:05:34"
+  "Gen_Extended_ts": "2025-08-24T13:58:45",
+  "final_full_scores_ts": "2025-08-24T14:13:42"
 }

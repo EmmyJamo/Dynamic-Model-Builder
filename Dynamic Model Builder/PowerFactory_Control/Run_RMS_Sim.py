@@ -12,7 +12,7 @@ import PowerFactory_Control.Get_Nested_Folder as GNF
 @dataclass
 class SimulationOptions:
     start_time: float = -0.1
-    stop_time:  float = 20.0
+    stop_time:  float = 100
     step_size:  float = 0.01
     ignore_dsl_warnings: bool = True
 
