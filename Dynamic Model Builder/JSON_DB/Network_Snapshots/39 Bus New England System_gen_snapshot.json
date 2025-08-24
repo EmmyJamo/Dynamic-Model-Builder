@@ -120,34 +120,34 @@
         "note": "auto\u2011seed v1 (dual\u2011scenario)"
       },
       "AVR_Final": {
-        "Tr": 0.006353795803657183,
-        "Ka": 261.60177023249366,
-        "Ta": 0.3441934057846029,
-        "Vrmax": 8.808631875538476,
-        "Vrmin": -16.434584168010787,
-        "Ke": 4.657330373002987,
-        "Te": 1.3003903395110543,
-        "Kf": 0.04100532662568021,
-        "Tf": 3.6225168391124134,
+        "Tr": 0.06019082477989734,
+        "Ka": 11.48805831191881,
+        "Ta": 0.4366496663534442,
+        "Vrmax": 18.55918734378334,
+        "Vrmin": -15.697269216316029,
+        "Ke": 7.145999299905346,
+        "Te": 1.3778295370464542,
+        "Kf": 2.553377328191156,
+        "Tf": 4.3364517998068965,
         "E1": 3.191489,
         "E2": 4.255319,
         "Se1": 0.072,
         "Se2": 0.282
       },
       "AVR_FinalVec": {
-        "Ka": 261.60177023249366,
-        "Ta": 0.3441934057846029,
-        "Tr": 0.006353795803657183,
-        "Ke": 4.657330373002987,
-        "Te": 1.3003903395110543,
-        "Kf": 0.04100532662568021,
-        "Tf": 3.6225168391124134,
-        "Vrmax": 8.808631875538476,
-        "Vrmin": -16.434584168010787
+        "Ka": 11.48805831191881,
+        "Ta": 0.4366496663534442,
+        "Tr": 0.06019082477989734,
+        "Ke": 7.145999299905346,
+        "Te": 1.3778295370464542,
+        "Kf": 2.553377328191156,
+        "Tf": 4.3364517998068965,
+        "Vrmax": 18.55918734378334,
+        "Vrmin": -15.697269216316029
       },
-      "final_score": 0.0029219282912296457,
-      "tuned_iter": 869,
-      "tuning_ts": "2025-08-24T14:09:10"
+      "final_score": 0.002953890310220107,
+      "tuned_iter": 67,
+      "tuning_ts": "2025-08-24T19:53:04"
     },
     {
       "name": "G 01",
@@ -363,34 +363,34 @@
         "note": "auto\u2011seed v1 (dual\u2011scenario)"
       },
       "AVR_Final": {
-        "Tr": 0.1217203267853809,
-        "Ka": 304.95165405121975,
-        "Ta": 0.28104160711826826,
-        "Vrmax": 10.991104748282206,
-        "Vrmin": -17.126664190681403,
-        "Ke": 5.284116545774091,
-        "Te": 2.8980459709407365,
-        "Kf": 4.5599340054410895,
-        "Tf": 4.4791064088869845,
+        "Tr": 0.09769971019977514,
+        "Ka": 373.2188147158136,
+        "Ta": 0.3842811176245746,
+        "Vrmax": 10.638070815785433,
+        "Vrmin": -9.28785705286653,
+        "Ke": 5.154242981097745,
+        "Te": 3.1087899711394775,
+        "Kf": 2.06850391001148,
+        "Tf": 2.1252335925793813,
         "E1": 2.868069,
         "E2": 3.824092,
         "Se1": 0.08,
         "Se2": 0.314
       },
       "AVR_FinalVec": {
-        "Ka": 304.95165405121975,
-        "Ta": 0.28104160711826826,
-        "Tr": 0.1217203267853809,
-        "Ke": 5.284116545774091,
-        "Te": 2.8980459709407365,
-        "Kf": 4.5599340054410895,
-        "Tf": 4.4791064088869845,
-        "Vrmax": 10.991104748282206,
-        "Vrmin": -17.126664190681403
+        "Ka": 373.2188147158136,
+        "Ta": 0.3842811176245746,
+        "Tr": 0.09769971019977514,
+        "Ke": 5.154242981097745,
+        "Te": 3.1087899711394775,
+        "Kf": 2.06850391001148,
+        "Tf": 2.1252335925793813,
+        "Vrmax": 10.638070815785433,
+        "Vrmin": -9.28785705286653
       },
-      "final_score": 0.0029986203237029685,
-      "tuned_iter": 147,
-      "tuning_ts": "2025-08-24T14:10:33"
+      "final_score": 0.003007882192768405,
+      "tuned_iter": 204,
+      "tuning_ts": "2025-08-24T19:56:41"
     },
     {
       "name": "G 05",
@@ -566,34 +566,34 @@
         "note": "auto\u2011seed v1 (dual\u2011scenario)"
       },
       "AVR_Final": {
-        "Tr": 0.1504102326575445,
-        "Ka": 106.40731387682928,
-        "Ta": 0.05521170036159022,
-        "Vrmax": 18.67604707226058,
-        "Vrmin": -2.6503292933112927,
-        "Ke": 7.471188824933146,
-        "Te": 2.8713132033661517,
-        "Kf": 0.010050482651599774,
-        "Tf": 2.4548872425039057,
+        "Tr": 0.06396229610834467,
+        "Ka": 44.79416303643963,
+        "Ta": 0.15347833365886637,
+        "Vrmax": 5.908011511327279,
+        "Vrmin": -3.564912760356121,
+        "Ke": 2.2488105324080534,
+        "Te": 0.8565198635558946,
+        "Kf": 0.08504187573885999,
+        "Tf": 1.1745145917861928,
         "E1": 4.256757,
         "E2": 5.675676,
         "Se1": 0.62,
         "Se2": 0.85
       },
       "AVR_FinalVec": {
-        "Ka": 106.40731387682928,
-        "Ta": 0.05521170036159022,
-        "Tr": 0.1504102326575445,
-        "Ke": 7.471188824933146,
-        "Te": 2.8713132033661517,
-        "Kf": 0.010050482651599774,
-        "Tf": 2.4548872425039057,
-        "Vrmax": 18.67604707226058,
-        "Vrmin": -2.6503292933112927
+        "Ka": 44.79416303643963,
+        "Ta": 0.15347833365886637,
+        "Tr": 0.06396229610834467,
+        "Ke": 2.2488105324080534,
+        "Te": 0.8565198635558946,
+        "Kf": 0.08504187573885999,
+        "Tf": 1.1745145917861928,
+        "Vrmax": 5.908011511327279,
+        "Vrmin": -3.564912760356121
       },
-      "final_score": 0.0034228222685369378,
-      "tuned_iter": 182,
-      "tuning_ts": "2025-08-24T14:12:35"
+      "final_score": 0.003394385486927743,
+      "tuned_iter": 170,
+      "tuning_ts": "2025-08-24T20:06:20"
     },
     {
       "name": "G 07",
@@ -944,8 +944,8 @@
       "fitness_fast_dip": 0.022906669025846177,
       "fitness_slow_hold": 0.028086815888251154,
       "original network fitness_value": 0.022906669025846177,
-      "fitness_fast_dip_final": 0.020639426280990577,
-      "fitness_slow_hold_final": 0.02757000587827739
+      "fitness_fast_dip_final": 0.019952249369446354,
+      "fitness_slow_hold_final": 0.027062912971184478
     },
     {
       "name": "Bus 34",
@@ -1018,8 +1018,8 @@
       "fitness_fast_dip": 0.020908067215003,
       "fitness_slow_hold": 0.0256743676891119,
       "original network fitness_value": 0.020908067215003,
-      "fitness_fast_dip_final": 0.02063850249736183,
-      "fitness_slow_hold_final": 0.025716636019256004
+      "fitness_fast_dip_final": 0.02047678260297669,
+      "fitness_slow_hold_final": 0.02560911874774968
     },
     {
       "name": "Bus 22",
@@ -1038,8 +1038,8 @@
       "fitness_fast_dip": 0.02159962625733367,
       "fitness_slow_hold": 0.027025560885608358,
       "original network fitness_value": 0.02159962625733367,
-      "fitness_fast_dip_final": 0.02133883214572481,
-      "fitness_slow_hold_final": 0.02709143866982568
+      "fitness_fast_dip_final": 0.02117812350004765,
+      "fitness_slow_hold_final": 0.02698612947901649
     },
     {
       "name": "Bus 37",
@@ -1094,8 +1094,8 @@
       "fitness_fast_dip": 0.019068825744770902,
       "fitness_slow_hold": 0.024174883815403548,
       "original network fitness_value": 0.019068825744770902,
-      "fitness_fast_dip_final": 0.018420884206874967,
-      "fitness_slow_hold_final": 0.024152500895297236
+      "fitness_fast_dip_final": 0.0180888827076246,
+      "fitness_slow_hold_final": 0.0239228465496429
     },
     {
       "name": "Bus 21",
@@ -1114,8 +1114,8 @@
       "fitness_fast_dip": 0.016178269052732085,
       "fitness_slow_hold": 0.02205524506908988,
       "original network fitness_value": 0.016178269052732085,
-      "fitness_fast_dip_final": 0.015663028173171865,
-      "fitness_slow_hold_final": 0.02202709278071851
+      "fitness_fast_dip_final": 0.01539887275088301,
+      "fitness_slow_hold_final": 0.021847866506992237
     },
     {
       "name": "Bus 16",
@@ -1134,8 +1134,8 @@
       "fitness_fast_dip": 0.01643071748802885,
       "fitness_slow_hold": 0.022228599845966653,
       "original network fitness_value": 0.01643071748802885,
-      "fitness_fast_dip_final": 0.015730068303956006,
-      "fitness_slow_hold_final": 0.022280133001554438
+      "fitness_fast_dip_final": 0.015372899888163904,
+      "fitness_slow_hold_final": 0.022030468676638684
     },
     {
       "name": "Bus 17",
@@ -1154,8 +1154,8 @@
       "fitness_fast_dip": 0.017779775288969926,
       "fitness_slow_hold": 0.02296741802265908,
       "original network fitness_value": 0.017779775288969926,
-      "fitness_fast_dip_final": 0.017266449451888467,
-      "fitness_slow_hold_final": 0.022964526603623584
+      "fitness_fast_dip_final": 0.016991562895166828,
+      "fitness_slow_hold_final": 0.02277365547475245
     },
     {
       "name": "Bus 27",
@@ -1174,8 +1174,8 @@
       "fitness_fast_dip": 0.019919097913828687,
       "fitness_slow_hold": 0.024520122187842615,
       "original network fitness_value": 0.019919097913828687,
-      "fitness_fast_dip_final": 0.019549551620976633,
-      "fitness_slow_hold_final": 0.024419042310847506
+      "fitness_fast_dip_final": 0.0193529639148297,
+      "fitness_slow_hold_final": 0.024284925927231124
     },
     {
       "name": "Bus 18",
@@ -1194,8 +1194,8 @@
       "fitness_fast_dip": 0.01650716427429974,
       "fitness_slow_hold": 0.021920913330083405,
       "original network fitness_value": 0.01650716427429974,
-      "fitness_fast_dip_final": 0.01608333606947495,
-      "fitness_slow_hold_final": 0.021864815765876573
+      "fitness_fast_dip_final": 0.015853765354832274,
+      "fitness_slow_hold_final": 0.021706469612030415
     },
     {
       "name": "Bus 03",
@@ -1214,8 +1214,8 @@
       "fitness_fast_dip": 0.015859183552871456,
       "fitness_slow_hold": 0.021243793192777555,
       "original network fitness_value": 0.015859183552871456,
-      "fitness_fast_dip_final": 0.015574698244633573,
-      "fitness_slow_hold_final": 0.021200064822141804
+      "fitness_fast_dip_final": 0.015417726730390695,
+      "fitness_slow_hold_final": 0.021092046840123817
     },
     {
       "name": "Bus 26",
@@ -1234,8 +1234,8 @@
       "fitness_fast_dip": 0.026371314073254538,
       "fitness_slow_hold": 0.02942927252104506,
       "original network fitness_value": 0.026371314073254538,
-      "fitness_fast_dip_final": 0.026129072693944193,
-      "fitness_slow_hold_final": 0.029350456460844734
+      "fitness_fast_dip_final": 0.02600040003027603,
+      "fitness_slow_hold_final": 0.02926309881848709
     },
     {
       "name": "Bus 28",
@@ -1254,8 +1254,8 @@
       "fitness_fast_dip": 0.024975187974810187,
       "fitness_slow_hold": 0.028444591031227585,
       "original network fitness_value": 0.024975187974810187,
-      "fitness_fast_dip_final": 0.024867302417588798,
-      "fitness_slow_hold_final": 0.0283853624442989
+      "fitness_fast_dip_final": 0.02480702605576971,
+      "fitness_slow_hold_final": 0.02834394186487832
     },
     {
       "name": "Bus 25",
@@ -1274,8 +1274,8 @@
       "fitness_fast_dip": 0.026289504978404474,
       "fitness_slow_hold": 0.029310300417463048,
       "original network fitness_value": 0.026289504978404474,
-      "fitness_fast_dip_final": 0.026397100908777192,
-      "fitness_slow_hold_final": 0.03075395576036043
+      "fitness_fast_dip_final": 0.03182742751713511,
+      "fitness_slow_hold_final": 0.03431422412354823
     },
     {
       "name": "Bus 29",
@@ -1294,8 +1294,8 @@
       "fitness_fast_dip": 0.023556776906714566,
       "fitness_slow_hold": 0.027472220722102907,
       "original network fitness_value": 0.023556776906714566,
-      "fitness_fast_dip_final": 0.025445766903051736,
-      "fitness_slow_hold_final": 0.03263673075669235
+      "fitness_fast_dip_final": 0.0249854755487289,
+      "fitness_slow_hold_final": 0.033731923660240574
     },
     {
       "name": "Bus 38",
@@ -1350,8 +1350,8 @@
       "fitness_fast_dip": 0.022461762253944924,
       "fitness_slow_hold": 0.02532672332165645,
       "original network fitness_value": 0.022461762253944924,
-      "fitness_fast_dip_final": 0.022376435381228618,
-      "fitness_slow_hold_final": 0.02591402248614175
+      "fitness_fast_dip_final": 0.024352102556305738,
+      "fitness_slow_hold_final": 0.027419913698979788
     },
     {
       "name": "Bus 01",
@@ -1370,8 +1370,8 @@
       "fitness_fast_dip": 0.02738666663774513,
       "fitness_slow_hold": 0.030648624679764123,
       "original network fitness_value": 0.02738666663774513,
-      "fitness_fast_dip_final": 0.027334896023052477,
-      "fitness_slow_hold_final": 0.030627973505351326
+      "fitness_fast_dip_final": 0.027486753311408946,
+      "fitness_slow_hold_final": 0.030792970286182962
     },
     {
       "name": "Bus 39",
@@ -1390,8 +1390,8 @@
       "fitness_fast_dip": 0.02704222502348823,
       "fitness_slow_hold": 0.03580424420416457,
       "original network fitness_value": 0.02704222502348823,
-      "fitness_fast_dip_final": 0.027032714778610665,
-      "fitness_slow_hold_final": 0.03580214487619522
+      "fitness_fast_dip_final": 0.027044419426286822,
+      "fitness_slow_hold_final": 0.035820605423879714
     },
     {
       "name": "Bus 09",
@@ -1410,16 +1410,16 @@
       "fitness_fast_dip": 0.017157394094506277,
       "fitness_slow_hold": 0.02314245908917164,
       "original network fitness_value": 0.017157394094506277,
-      "fitness_fast_dip_final": 0.017099515034036516,
-      "fitness_slow_hold_final": 0.02310404079831707
+      "fitness_fast_dip_final": 0.017077710436335367,
+      "fitness_slow_hold_final": 0.02310798832455395
     }
   ],
-  "Bus_Thevenin_update_ts": "2025-08-24T13:58:47",
-  "Bus_Voltage_update_ts": "2025-08-24T13:58:47",
-  "VQ_analysis_timestamp": "2025-08-24T13:59:33",
+  "Bus_Thevenin_update_ts": "2025-08-24T19:51:25",
+  "Bus_Voltage_update_ts": "2025-08-24T19:51:25",
+  "VQ_analysis_timestamp": "2025-08-24T19:52:21",
   "VQ_method": "ComVstab RMS \u00d7 head-room (AVR gens only)",
   "VQ_top_fraction": 0.3,
   "VQ_candidates": 9,
-  "Gen_Extended_ts": "2025-08-24T13:58:45",
-  "final_full_scores_ts": "2025-08-24T14:13:42"
+  "Gen_Extended_ts": "2025-08-24T19:51:23",
+  "final_full_scores_ts": "2025-08-24T20:07:45"
 }

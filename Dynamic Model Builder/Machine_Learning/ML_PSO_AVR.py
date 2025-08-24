@@ -11,12 +11,22 @@
 #     get_best(gname)                                -> List[float]
 #     bind_avr(pf_data, meta)                        -> bool
 #     write_candidate(pf_data, meta, vec)            -> bool
+#
+#  Diagnostics / Visualisation:
+#     save_history_csv(gname, out_dir)               -> Path
+#     export_heatmaps(gname, out_dir, ...)           -> List[Path]
 # ────────────────────────────────────────────────────────────────────────────
 from __future__ import annotations
 import numpy as np
 import numpy.random as npr
 import pyswarms as ps                     # pip install pyswarms
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
+from pathlib import Path
+
+# plotting (headless-safe)
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------
 # Tuned parameter list – keep order stable and consistent with writer
@@ -88,6 +98,10 @@ def _merge_opts(meta: Dict[str, Any]) -> dict:
         opts["seed"] = int(meta["PSO_Seed"])
     return opts
 
+def _vec_to_named(vec: List[float] | np.ndarray) -> Dict[str, float]:
+    arr = np.asarray(vec, dtype=float).ravel()
+    return {tag: float(arr[i]) for i, tag in enumerate(TUNED_TAGS)}
+
 # ────────────────────────────────────────────────────────────────────────────
 # Utility samplers
 # ────────────────────────────────────────────────────────────────────────────
@@ -101,7 +115,7 @@ def _lhs_unit(n: int, d: int, rng) -> np.ndarray:
     return out
 
 def _reflect_into_bounds(x: np.ndarray, lb: np.ndarray, ub: np.ndarray) -> np.ndarray:
-    """Reflect positions that go out of bounds back into [lb, ub].
+    """Reflect positions that go out of bounds back into [lb,ub].
     Works for both 1-D vectors (DIM,) and 2-D matrices (N, DIM).
     """
     x_ref = np.asarray(x, dtype=float).copy()
@@ -131,6 +145,117 @@ def _reflect_into_bounds(x: np.ndarray, lb: np.ndarray, ub: np.ndarray) -> np.nd
 
     return np.minimum(np.maximum(x_ref, lb_b), ub_b)
 
+# ────────────────────────────────────────────────────────────────────────────
+# Internal history store for diagnostics
+# ────────────────────────────────────────────────────────────────────────────
+# Per-generator list of dicts:
+# { "gen": int, "particle": int, "score": float, "<param>": value, ... }
+_HIST: Dict[str, List[Dict[str, float]]] = {}
+
+def _hist_append(gname: str, generation: int, particle_idx: int,
+                 vec: List[float] | np.ndarray, score: float) -> None:
+    rec = {"gen": int(generation), "particle": int(particle_idx), "score": float(score)}
+    rec.update(_vec_to_named(vec))
+    _HIST.setdefault(gname, []).append(rec)
+
+def get_history(gname: str) -> List[Dict[str, float]]:
+    """Return the in-memory candidate history for a generator."""
+    return list(_HIST.get(gname, []))
+
+def save_history_csv(gname: str, out_dir: Path | str) -> Path:
+    """Persist the evaluation history (one row per candidate)."""
+    import csv
+    rows = _HIST.get(gname, [])
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    p = out_dir / f"{gname}_history.csv"
+    if not rows:
+        # still create header from TUNED_TAGS
+        with p.open("w", newline="", encoding="utf-8") as fp:
+            w = csv.writer(fp)
+            w.writerow(["gen", "particle", "score"] + TUNED_TAGS)
+        return p
+    # ensure stable column order
+    cols = ["gen", "particle", "score"] + TUNED_TAGS
+    with p.open("w", newline="", encoding="utf-8") as fp:
+        w = csv.DictWriter(fp, fieldnames=cols)
+        w.writeheader()
+        for r in rows:
+            w.writerow({c: r.get(c, "") for c in cols})
+    print(f"   📝 PSO history saved → {p}")
+    return p
+
+def export_heatmaps(gname: str,
+                    out_dir: Path | str,
+                    *,
+                    pairs: Optional[List[Tuple[str, str]]] = None,
+                    bins: int = 36,
+                    use_log10: bool = True) -> List[Path]:
+    """
+    Create density heatmaps for selected parameter pairs, coloured by best (low) scores.
+    """
+    out_dir = Path(out_dir)
+    heat_dir = out_dir
+    heat_dir.mkdir(parents=True, exist_ok=True)
+    rows = _HIST.get(gname, [])
+    if not rows:
+        print(f"   (no history for «{gname}», skipping heatmaps)")
+        return []
+    # default pairs
+    if not pairs:
+        pairs = [("Ka","Ta"), ("Ka","Kf"), ("Ke","Te"), ("Vrmax","Vrmin"), ("Ta","Tr")]
+
+    # pull arrays
+    scores = np.asarray([r["score"] for r in rows], dtype=float)
+    if use_log10:
+        # guard zeros
+        s = np.log10(np.maximum(scores, 1e-12))
+    else:
+        s = scores.copy()
+
+    out_paths: List[Path] = []
+    for (x_tag, y_tag) in pairs:
+        x = np.asarray([r.get(x_tag, np.nan) for r in rows], dtype=float)
+        y = np.asarray([r.get(y_tag, np.nan) for r in rows], dtype=float)
+        m = np.isfinite(x) & np.isfinite(y) & np.isfinite(s)
+        if np.count_nonzero(m) < 10:
+            continue
+        x, y, s_use = x[m], y[m], s[m]
+
+        # Build a 2D grid and take the MIN score per cell (best)
+        H_count, xedges, yedges = np.histogram2d(x, y, bins=bins)
+        H_best = np.full_like(H_count, np.nan, dtype=float)
+
+        # assign each point to a bin, track min score
+        xi = np.clip(np.digitize(x, xedges) - 1, 0, H_best.shape[0]-1)
+        yi = np.clip(np.digitize(y, yedges) - 1, 0, H_best.shape[1]-1)
+        for i in range(len(xi)):
+            xb, yb = xi[i], yi[i]
+            val = s_use[i]
+            if np.isnan(H_best[xb, yb]) or val < H_best[xb, yb]:
+                H_best[xb, yb] = val
+
+        fig, ax = plt.subplots(figsize=(5.6, 4.2))
+        # show best score (log10 if requested); invert colormap so lower=better (darker)
+        im = ax.imshow(
+            np.flipud(H_best.T),  # orient bins to standard origin
+            extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
+            aspect="auto",
+            interpolation="nearest",
+            cmap="viridis_r"
+        )
+        cb = fig.colorbar(im, ax=ax)
+        cb.set_label("log10(fitness)" if use_log10 else "fitness")
+        ax.set_xlabel(x_tag)
+        ax.set_ylabel(y_tag)
+        ax.set_title(f"{gname}: best score in each cell")
+        fig.tight_layout()
+        out_p = heat_dir / f"{gname}_{x_tag}_vs_{y_tag}.png"
+        fig.savefig(out_p, dpi=150)
+        plt.close(fig)
+        out_paths.append(out_p)
+        print(f"   📈 heatmap saved → {out_p}")
+    return out_paths
 
 # ────────────────────────────────────────────────────────────────────────────
 # PSO state (one per generator) – manual step to avoid calling opt.step()
@@ -141,7 +266,7 @@ class _PSOState:
                  seed: np.ndarray,
                  lb: np.ndarray,
                  ub: np.ndarray,
-                 n_particles: int = 10,
+                 n_particles: int = 20,
                  opts: dict | None = None):
         opts = (opts or {}).copy()
         self.lb, self.ub = lb, ub
@@ -262,6 +387,10 @@ class _PSOState:
         idx = self._next_idx - 1                        # particle just scored
         self._batch_costs[idx] = float(score)
 
+        # record this evaluation in diagnostics history
+        _hist_append(self.opt.swarm.pbest_pos.shape[0] and getattr(self.opt, "name", "gen") or "gen",
+                     self.generation, idx, vec, score)  # gname isn’t known here; wrapper logs by public API below
+
         # When all particles in the generation have been evaluated …
         if self._next_idx >= self.n_part:
             sw = self.opt.swarm
@@ -331,16 +460,20 @@ class _PSOState:
         return self.opt.swarm.best_pos.tolist()
 
 # ────────────────────────────────────────────────────────────────────────────
-# Registry (keyed by generator name)
+# Registry (keyed by generator name) + public API
 # ────────────────────────────────────────────────────────────────────────────
 _PSO_REG: Dict[str, _PSOState] = {}
+# Map gname -> canonical name for diagnostics storage
+_NAME_MAP: Dict[str, str] = {}
 
 def prepare_pso(pf_data, meta: Dict[str, Any], *, n_particles: int = 10) -> List[str]:
     g      = meta["name"]
     lb, ub = _bounds_for(meta)
     seed   = _seed_vec(meta, lb, ub)
     opts   = _merge_opts(meta)
-    _PSO_REG[g] = _PSOState(seed, lb, ub, n_particles, opts)
+    state  = _PSOState(seed, lb, ub, n_particles, opts)
+    _PSO_REG[g] = state
+    _NAME_MAP[g] = g  # stable key into _HIST
     print(f"      🐦  PSO ready for «{g}»  (particles={n_particles})")
     return TUNED_TAGS
 
@@ -348,10 +481,25 @@ def ask_one(gname: str) -> List[float]:
     return _PSO_REG[gname].ask_one()
 
 def tell_one(gname: str, score: float, vec: List[float]) -> None:
+    # Append to the correct generator history with its real name
+    _hist_append(_NAME_MAP.get(gname, gname),
+                 _PSO_REG[gname].generation,
+                 _PSO_REG[gname]._next_idx - 1 if _PSO_REG[gname]._next_idx > 0 else 0,
+                 vec, score)
     _PSO_REG[gname].tell_one(vec, score)
 
 def get_best(gname: str) -> List[float]:
     return _PSO_REG[gname].best_vector()
+
+# Convenience passthroughs for diagnostics
+def save_history_csv_public(gname: str, out_dir: Path | str) -> Path:
+    return save_history_csv(_NAME_MAP.get(gname, gname), out_dir)
+
+def export_heatmaps_public(gname: str, out_dir: Path | str,
+                           *, pairs: Optional[List[Tuple[str, str]]] = None,
+                           bins: int = 36, use_log10: bool = True) -> List[Path]:
+    return export_heatmaps(_NAME_MAP.get(gname, gname), out_dir,
+                           pairs=pairs, bins=bins, use_log10=use_log10)
 
 # ────────────────────────────────────────────────────────────────────────────
 # Write vector → PowerFactory AVR block (via params list), with cached handle
@@ -405,3 +553,7 @@ def write_candidate(pf_data, meta: Dict[str, Any], vec: List[float]) -> bool:
 def get_bound_avr(gname: str):
     """Optional debug helper: return cached AVR handle or None."""
     return _AVR_HANDLE.get(gname)
+
+# Aliases the wrapper can call (friendlier names)
+save_history_csv = save_history_csv_public
+export_heatmaps  = export_heatmaps_public

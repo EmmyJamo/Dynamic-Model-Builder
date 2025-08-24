@@ -297,6 +297,20 @@ def tune_selected_generators(pf_data,
                       f"(best {best_score:.6g} @ iter {best_iter}).")
                 break
 
+        # --- export PSO history & heatmaps for this generator (after loop)
+        try:
+            pso_diag_dir = _var_plot_dir(var_name)
+            PSO.save_history_csv(gname, pso_diag_dir)
+            PSO.export_heatmaps(
+                gname,
+                pso_diag_dir,
+                pairs=[("Ka","Ta"), ("Ka","Kf"), ("Ke","Te"), ("Vrmax","Vrmin"), ("Ta","Tr")],
+                bins=36,
+                use_log10=True,
+            )
+        except Exception as e:
+            print(f"   ⚠️ PSO diagnostics export failed for «{gname}»: {e}")
+
         # ---------- write BEST vector back to PF & snapshot --------------
         if best_vec is not None:
             print(f"   ↩ writing best vector from iter {best_iter} (score {best_score:.6g})")
@@ -320,7 +334,6 @@ def tune_selected_generators(pf_data,
         meta["final_score"]  = float(best_score)
         meta["tuned_iter"]   = int(best_iter)
         meta["tuning_ts"]    = datetime.datetime.now().isoformat(timespec="seconds")
-
 
     snap_p.write_text(json.dumps(snap, indent=2))
     print("\n✅  Tuning finished – snapshot JSON updated")
